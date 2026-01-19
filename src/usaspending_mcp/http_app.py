@@ -1,29 +1,13 @@
 import os
-from contextlib import asynccontextmanager
-
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from usaspending_mcp.server import mcp
 
-# Readiness flag
-is_ready = False
+# Initialize FastAPI with simple setup
+app = FastAPI(title="USAspending MCP Server")
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global is_ready
-    # Startup logic
-    print("USAspending MCP Server warming up...")
-    # Optional: Pre-fetch catalog here if desired
-    is_ready = True
-    yield
-    # Shutdown logic
-    print("Shutting down...")
-
-app = FastAPI(title="USAspending MCP Server", lifespan=lifespan)
-
-# Add CORS Middleware
+# Add CORS Middleware - Critical for browser-based clients like ChatGPT
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -36,16 +20,10 @@ app.add_middleware(
 async def healthz():
     return {"status": "ok"}
 
-@app.get("/readyz")
-async def readyz():
-    if is_ready:
-        return {"ready": "true"}
-    return {"ready": "false"}, 503
-
 # Mount MCP SSE app for HTTP transport
-# sse_app() provides /sse and /messages endpoints
+# This provides /sse and /messages endpoints at the root
 mcp_app = mcp.sse_app()
-app.mount("/mcp", mcp_app)
+app.mount("/", mcp_app)
 
 def main():
     """
@@ -54,7 +32,8 @@ def main():
     port = int(os.getenv("PORT", "8080"))
     log_level = os.getenv("LOG_LEVEL", "info")
     print(f"Starting server on port {port} with log level {log_level}...")
-    uvicorn.run("usaspending_mcp.http_app:app", host="0.0.0.0", port=port, log_level=log_level)
+    # Using proxy_headers=True for Cloud Run/Load Balancer support
+    uvicorn.run("usaspending_mcp.http_app:app", host="0.0.0.0", port=port, log_level=log_level, proxy_headers=True)
 
 if __name__ == "__main__":
     main()
