@@ -33,9 +33,9 @@ async def healthz():
     return {"status": "ok"}
 
 # Mount MCP SSE app for HTTP transport
-# This provides /sse and /messages endpoints at the root
+# This provides /mcp/sse and /mcp/messages endpoints
 mcp_app = mcp.sse_app()
-app.mount("/", mcp_app)
+app.mount("/mcp", mcp_app)
 
 def main():
     """
