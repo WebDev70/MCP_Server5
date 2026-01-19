@@ -87,18 +87,28 @@ steps:
 
   # 4. Push Image
   - name: 'gcr.io/cloud-builders/docker'
-    args: [
-      'push',
-      '$_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO/$_SERVICE_NAME:$COMMIT_SHA'
-    ]
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ "$_DEPLOY" = "true" ]; then
+          docker push $_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO/$_SERVICE_NAME:$COMMIT_SHA
+        else
+          echo "Skipping push (set _DEPLOY=true to enable)"
+        fi
     id: 'push-image'
 
   # 5. Push Latest Tag (Optional)
   - name: 'gcr.io/cloud-builders/docker'
-    args: [
-      'push',
-      '$_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO/$_SERVICE_NAME:latest'
-    ]
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ "$_DEPLOY" = "true" ]; then
+          docker push $_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO/$_SERVICE_NAME:latest
+        else
+          echo "Skipping push (set _DEPLOY=true to enable)"
+        fi
     id: 'push-latest'
 
   # 6. Deploy to Cloud Run (Optional)
