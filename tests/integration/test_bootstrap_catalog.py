@@ -17,13 +17,14 @@ def tool():
 def test_bootstrap_catalog_fresh(tool):
     # Mock endpoints
     agencies_url = f"{tool.client.base_url}/references/toptier_agencies/"
-    types_url = f"{tool.client.base_url}/references/filter_tree/award_type/"
-    
+    types_url = f"{tool.client.base_url}/references/award_types/"
+
     respx.get(agencies_url).mock(return_value=httpx.Response(200, json={"results": [{"agency_id": 1}]}))
-    respx.get(types_url).mock(return_value=httpx.Response(200, json={"results": [{"code": "A"}]}))
-    
+    # award_types endpoint returns a dict of groups, not {"results": [...]}
+    respx.get(types_url).mock(return_value=httpx.Response(200, json={"contracts": [{"code": "A"}]}))
+
     result = tool.execute(include=["toptier_agencies", "award_types"])
-    
+
     assert result["tool_version"] == "1.0"
     assert "toptier_agencies" in result["catalog"]
     assert result["catalog"]["toptier_agencies"][0]["agency_id"] == 1

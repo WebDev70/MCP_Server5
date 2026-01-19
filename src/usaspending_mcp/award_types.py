@@ -18,7 +18,9 @@ CONTRACT_KEYWORDS = [
 ]
 IDV_KEYWORDS = [
     r"\bidvs?\b", r"\bidiq\b", r"\bgwac\b", r"\bbpa\b",
-    r"\btask orders?\b", r"\bdelivery orders?\b", r"\bindefinite delivery\b"
+    r"\btask orders?\b", r"\bdelivery orders?\b", r"\bindefinite delivery\b",
+    r"\bfss\b", r"\bfederal supply schedule\b", r"\bgsa\s*(mas|schedule)\b",
+    r"\bboa\b", r"\bbasic ordering agreement\b", r"\bblanket purchase\b"
 ]
 GRANT_KEYWORDS = [
     r"\bgrants?\b", r"\bcooperative agreements?\b", r"\bblock grants?\b",
@@ -37,11 +39,36 @@ OTHER_ASSISTANCE_KEYWORDS = [
 
 # Fallback Codes - each is a separate API group
 FALLBACK_CONTRACT_CODES = ["A", "B", "C", "D"]
+#Non-IDV procurement “Award Type” codes (definitive instruments)
+#   A — BPA Call (call against a BPA)
+#   B — Purchase Order
+#   C — Delivery Order / Task Order (order under an IDV)
+#   D — Definitive Contract
+
+# IDV (Indefinite Delivery Vehicle) Codes:
+#   IDV_A   — GWAC (Government-Wide Acquisition Contract, OMB-approved)
+#   IDV_B   — IDC (Indefinite Delivery Contract)
+#   IDV_B_A — IDC / Requirements
+#   IDV_B_B — IDC / Indefinite Quantity (IDIQ)
+#   IDV_B_C — IDC / Definite Quantity
+#   IDV_C   — FSS (GSA MAS or VA Federal Supply Schedule)
+#   IDV_D   — BOA (Basic Ordering Agreement)
+#   IDV_E   — BPA (Blanket Purchase Agreement)
 FALLBACK_IDV_CODES = ["IDV_A", "IDV_B", "IDV_B_A", "IDV_B_B", "IDV_B_C", "IDV_C", "IDV_D", "IDV_E"]
+
 FALLBACK_GRANT_CODES = ["02", "03", "04", "05"]
 FALLBACK_LOAN_CODES = ["07", "08"]
 FALLBACK_DIRECT_PAYMENT_CODES = ["06", "10"]
 FALLBACK_OTHER_ASSISTANCE_CODES = ["09", "11"]
+
+
+# Specific IDV subtype keywords that unambiguously refer to IDVs
+# These take priority even when "contract" is also mentioned (e.g., "FSS contracts")
+SPECIFIC_IDV_KEYWORDS = [
+    r"\bgwac\b", r"\bidiq\b", r"\bbpa\b", r"\bfss\b", r"\bboa\b",
+    r"\bfederal supply schedule\b", r"\bgsa\s*(mas|schedule)\b",
+    r"\bbasic ordering agreement\b", r"\bblanket purchase\b"
+]
 
 
 def infer_scope_mode(question: str) -> str:
@@ -51,7 +78,12 @@ def infer_scope_mode(question: str) -> str:
     """
     q_lower = question.lower()
 
-    # Check for specific types first (most specific wins)
+    # Check for specific IDV subtypes first - these always mean IDV
+    has_specific_idv = any(re.search(p, q_lower) for p in SPECIFIC_IDV_KEYWORDS)
+    if has_specific_idv:
+        return SCOPE_IDVS_ONLY
+
+    # Check for general type keywords
     has_idv = any(re.search(p, q_lower) for p in IDV_KEYWORDS)
     has_contract = any(re.search(p, q_lower) for p in CONTRACT_KEYWORDS)
     has_grant = any(re.search(p, q_lower) for p in GRANT_KEYWORDS)
