@@ -3,6 +3,7 @@ import uvicorn
 import logging
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from usaspending_mcp.server import mcp
 
 # Initialize logger
@@ -10,6 +11,13 @@ logger = logging.getLogger("uvicorn.error")
 
 # Initialize FastAPI with simple setup
 app = FastAPI(title="USAspending MCP Server")
+
+# Add Trusted Host Middleware - Allow all hosts for Cloud Run
+# This must be added before other middleware
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["*"],  # Allow all hosts (Cloud Run generates dynamic hostnames)
+)
 
 # Add CORS Middleware - Critical for browser-based clients like ChatGPT
 app.add_middleware(
