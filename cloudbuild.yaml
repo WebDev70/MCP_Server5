@@ -151,7 +151,7 @@ steps:
 
 substitutions:
   _REGION: 'us-central1'
-  _SERVICE_NAME: 'MCP5'
+  _SERVICE_NAME: 'mcp5-server'
   _AR_REPO: 'mcp5-repo'
   _DEPLOY: 'true'
   _SECURITY_SCAN: 'false'
