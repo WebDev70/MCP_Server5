@@ -1,7 +1,7 @@
 steps:
   # 1. Lint and Test (Fail Fast)
   - name: 'ghcr.io/astral-sh/uv:latest'
-    entrypoint: 'bash'
+    entrypoint: 'sh'
     args:
       - '-c'
       - |
@@ -29,7 +29,7 @@ steps:
     id: 'scan-deps'
 
   - name: 'zricethezav/gitleaks:latest'
-    entrypoint: 'bash'
+    entrypoint: 'sh'
     args:
       - '-c'
       - |
@@ -75,7 +75,7 @@ steps:
   # 4. Run black-box tests
   # For now, we run the integration suite using the source code which uses robust respx mocks.
   - name: 'ghcr.io/astral-sh/uv:latest'
-    entrypoint: 'bash'
+    entrypoint: 'sh'
     args:
       - '-c'
       - |
