@@ -1,8 +1,12 @@
 import os
 import uvicorn
-from fastapi import FastAPI
+import logging
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from usaspending_mcp.server import mcp
+
+# Initialize logger
+logger = logging.getLogger("uvicorn.error")
 
 # Initialize FastAPI with simple setup
 app = FastAPI(title="USAspending MCP Server")
@@ -15,6 +19,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def log_request_info(request: Request, call_next):
+    logger.info(f"Incoming Request: {request.method} {request.url}")
+    logger.info(f"Query Params: {request.query_params}")
+    logger.info(f"Headers: {request.headers}")
+    response = await call_next(request)
+    return response
 
 @app.get("/healthz")
 async def healthz():
