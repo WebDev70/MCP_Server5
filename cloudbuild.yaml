@@ -133,7 +133,7 @@ substitutions:
   _REGION: 'us-central1'
   _SERVICE_NAME: 'usaspending-mcp'
   _AR_REPO: 'usaspending-mcp'
-  _DEPLOY: 'false'
+  _DEPLOY: 'true'
   _SECURITY_SCAN: 'false'
 
 options:
