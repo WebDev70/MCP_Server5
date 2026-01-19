@@ -50,7 +50,7 @@ docker compose --profile dev up -d--build
 ## Cloud Run Deployment
 
 ### 0. Infrastructure Setup (One-time)
-Bootstrap minimal GCP resources (APIs, Repo, Service Accounts) with least privilege:
+Bootstrap minimal GCP resources (APIs, Repo, Service Accounts) with least privileges:
 ```bash
 PROJECT_ID=your-project REGION=us-central1 ./scripts/bootstrap_gcp.sh
 ```
