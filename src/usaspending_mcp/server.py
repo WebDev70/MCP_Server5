@@ -38,7 +38,7 @@ freshness_tool = DataFreshnessTool(client)
 orchestrator_tool = AnswerAwardSpendingQuestionTool(router)
 
 # Initialize FastMCP server
-mcp = FastMCP("USAspending MCP")
+mcp = FastMCP("USAspending MCP", log_level="DEBUG")
 
 # Register Tools
 @mcp.tool()

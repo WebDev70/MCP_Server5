@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from usaspending_mcp.server import mcp
 
@@ -21,6 +22,15 @@ async def lifespan(app: FastAPI):
     print("Shutting down...")
 
 app = FastAPI(title="USAspending MCP Server", lifespan=lifespan)
+
+# Add CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/healthz")
 async def healthz():
