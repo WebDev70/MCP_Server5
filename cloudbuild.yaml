@@ -42,6 +42,26 @@ steps:
         fi
     id: 'scan-secrets'
 
+  # 2.5 Ensure Artifact Registry Repo Exists
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ "$_DEPLOY" = "true" ]; then
+          if ! gcloud artifacts repositories describe $_AR_REPO --location=$_REGION --project=$PROJECT_ID >/dev/null 2>&1; then
+            echo "Creating Artifact Registry repository: $_AR_REPO..."
+            gcloud artifacts repositories create $_AR_REPO \
+                --repository-format=docker \
+                --location=$_REGION \
+                --description="Docker repository for USAspending MCP" \
+                --project=$PROJECT_ID
+          else
+            echo "Artifact Registry repository $_AR_REPO already exists."
+          fi
+        fi
+    id: 'ensure-repo'
+
   # 3. Build App Image
   - name: 'gcr.io/cloud-builders/docker'
     args: [
