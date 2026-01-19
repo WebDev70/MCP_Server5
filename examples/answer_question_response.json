@@ -1,0 +1,68 @@
+{
+  "jsonrpc": "2.0",
+  "id": 5,
+  "result": {
+    "tool_version": "1.0",
+    "plan": {
+      "scope_mode": "assistance_only",
+      "inferred_from": ["grants"],
+      "actions": [
+        {
+          "tool": "spending_rollups",
+          "reason": "Question asks 'how much' - use rollups for totals",
+          "cost_hint": 1
+        }
+      ],
+      "route_name": "totals_rollup"
+    },
+    "result": {
+      "totals": {
+        "obligations": 8500000000.00,
+        "award_count": 12500
+      },
+      "breakdown_by_grant_type": [
+        {
+          "award_type": "04",
+          "award_type_name": "Project Grant",
+          "obligations": 5200000000.00
+        },
+        {
+          "award_type": "03",
+          "award_type_name": "Formula Grant",
+          "obligations": 2100000000.00
+        },
+        {
+          "award_type": "02",
+          "award_type_name": "Block Grant",
+          "obligations": 950000000.00
+        },
+        {
+          "award_type": "05",
+          "award_type_name": "Cooperative Agreement",
+          "obligations": 250000000.00
+        }
+      ]
+    },
+    "meta": {
+      "request_id": "550e8400-e29b-41d4-a716-446655440004",
+      "scope_mode": "assistance_only",
+      "route_name": "totals_rollup",
+      "outbound_calls": 1,
+      "cache_hit": false,
+      "time_period": {
+        "start_date": "2024-07-01",
+        "end_date": "2024-09-30",
+        "description": "last quarter (Q4 FY2024)"
+      },
+      "endpoints_used": ["/api/v2/spending/"],
+      "accuracy_tier": "A",
+      "budgets_used": {
+        "tool_calls": 1,
+        "usaspending_requests": 1,
+        "wall_ms": 1250
+      },
+      "truncated": false,
+      "warnings": []
+    }
+  }
+}

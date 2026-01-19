@@ -1,0 +1,91 @@
+{
+  "id": 12345,
+  "type": "A",
+  "category": "contract",
+  "type_description": "Definitive Contract",
+  "piid": "CONT_AWD_0001",
+  "description": "Aircraft Parts Procurement",
+  "total_obligation": 1000000.00,
+  "base_and_exercised_options_value": 1000000.00,
+  "base_and_all_options_value": 1500000.00,
+  "date_signed": "2024-01-15",
+  "period_of_performance_start_date": "2024-01-15",
+  "period_of_performance_current_end_date": "2025-01-14",
+  "awarding_agency": {
+    "toptier_agency": {
+      "name": "Department of Defense",
+      "abbreviation": "DOD",
+      "code": "097"
+    },
+    "subtier_agency": {
+      "name": "Department of the Air Force",
+      "abbreviation": "USAF"
+    }
+  },
+  "funding_agency": {
+    "toptier_agency": {
+      "name": "Department of Defense",
+      "abbreviation": "DOD",
+      "code": "097"
+    },
+    "subtier_agency": {
+      "name": "Department of the Air Force",
+      "abbreviation": "USAF"
+    }
+  },
+  "recipient": {
+    "recipient_name": "BOEING COMPANY",
+    "recipient_unique_id": "123456789",
+    "recipient_hash": "hash-boeing-123"
+  },
+  "place_of_performance": {
+    "city_name": "Seattle",
+    "state_code": "WA",
+    "country_code": "USA"
+  },
+  "latest_transaction_contract_data": {
+    "clinger_cohen_act_planning": null,
+    "commercial_item_acquisition_procedures": "COMMERCIAL ITEM",
+    "commercial_item_test_program": null,
+    "consolidated_contract": "NO",
+    "contingency_humanitarian_or_peacekeeping_operation": null,
+    "contract_bundling": "NOT BUNDLED",
+    "contract_financing": null,
+    "contracting_officers_determination_of_business_size": "OTHER THAN SMALL BUSINESS",
+    "cost_or_pricing_data": "NO",
+    "country_of_product_or_service_origin": "USA",
+    "davis_bacon_act": "NO",
+    "evaluated_preference": "NO PREFERENCE USED",
+    "extent_competed": "FULL AND OPEN COMPETITION",
+    "fed_biz_opps": "YES",
+    "foreign_funding": "NOT APPLICABLE",
+    "gfe_gfp": "NO",
+    "information_technology_commercial_item_category": "NOT IT PRODUCTS OR SERVICES",
+    "interagency_contracting_authority": "NOT APPLICABLE",
+    "local_area_set_aside": "NO",
+    "major_program": null,
+    "multi_year_contract": "NO",
+    "national_interest_action": "NONE",
+    "number_of_offers_received": "3",
+    "other_statutory_authority": null,
+    "performance_based_service_acquisition": "NO",
+    "place_of_manufacture": "MFG IN US",
+    "price_evaluation_adjustment_preference_percent_difference": null,
+    "product_or_service_code": "1510",
+    "program_acronym": null,
+    "purchase_card_as_payment_method": "NO",
+    "referenced_idv_agency_identifier": null,
+    "referenced_idv_mod_number": null,
+    "referenced_idv_type": null,
+    "research": "NO",
+    "sea_transportation": "NO",
+    "service_contract_act": "NO",
+    "small_business_competitiveness_demonstration_program": "NO",
+    "solicitation_identifier": "SOL-123",
+    "solicitation_procedures": "NP",
+    "subcontracting_plan": "PLAN REQUIRED",
+    "type_of_contract_pricing": "FIRM FIXED PRICE",
+    "type_of_set_aside": "NONE",
+    "walsh_healey_act": "NO"
+  }
+}

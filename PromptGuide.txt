@@ -1,0 +1,1437 @@
+PROMPT GUIDE
+Below is a Prompt Guide designed for your all-awards scope from day 1: contracts, contract IDVs, grants, direct payments, loans, and other assistance/spending. It’s structured so you can paste one prompt at a time into Codex and build iteratively with tests passing as you go.
+
+Prompt Pack — USAspending MCP (All Awards)
+
+Prompt 0 — Read PRD and produce an execution plan (no code)
+Read ./prd.md and produce:
+1) A 1-page architecture summary
+2) A repo file tree (src-layout) you will implement
+3) Sprint 1 (P0) step-by-step plan with acceptance criteria per tool
+4) The “scope_mode” strategy and keyword triggers for:
+   - all_awards (default)
+   - contracts_only (contracts + IDVs)
+   - assistance_only (grants/loans/direct payments/other)
+5) A “golden questions” list that covers each award family and maps to tools/endpoints
+Do not write code yet.
+
+Prompt 1 — Repo layout + packaging stability (src-layout + uv)
+Create a src-layout Python package using setuptools:
+- Create src/usaspending_mcp/__init__.py
+- Create src/usaspending_mcp/server.py (entrypoint)
+- Create src/usaspending_mcp/router.py
+- Create src/usaspending_mcp/usaspending_client.py
+- Create src/usaspending_mcp/cache.py
+- Create src/usaspending_mcp/response.py
+- Create src/usaspending_mcp/tools/ (package)
+- Keep test_server.py at repo root
+- Create pyproject.toml compatible with uv and setuptools src-layout
+- Add .gitignore with .venv/
+Ensure these commands work:
+- `uv sync`
+- `uv run python -m usaspending_mcp.server`
+Add a minimal README with local run steps.
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+Prompt 2 — HTTP client hardening + structured logs + request_id + standard error object
+Implement a robust USAspending HTTP client in src/usaspending_mcp/usaspending_client.py:
+- Env vars: USASPENDING_BASE_URL, USASPENDING_TIMEOUT_S, USASPENDING_MAX_RETRIES, USASPENDING_BACKOFF_BASE_S
+- Retries on 429 and 5xx with exponential backoff + jitter
+- Capture latency_ms, status_code, endpoint, method
+- Create request_id (uuid) per top-level tool call and propagate into all client calls
+- Structured logging (print JSON-like dicts) including:
+  request_id, tool_name, endpoint, status_code, latency_ms, cache_hit
+- Standardize APIError:
+  error.type in {"validation","rate_limit","upstream","network","unknown"}
+  plus message, status_code, endpoint, method, response_snippet
+Add tests under tests/test_client.py using mocked HTTP.
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+Prompt 3 — Shared response envelope (tool_version + meta) and out-of-scope helper
+Create src/usaspending_mcp/response.py:
+- Every success returns:
+  tool_version: "1.0"
+  meta: { request_id, scope_mode, endpoint_used or endpoints_used, time_period?, warnings: [], accuracy_tier? }
+- Every failure returns:
+  tool_version: "1.0"
+  error: { type, message, status_code?, endpoint?, remediation_hint? }
+  meta: { request_id, scope_mode, endpoint_used?, warnings? }
+Add helpers:
+- ok(data, meta_additions)
+- fail(error_type, message, remediation_hint=None, status_code=None, endpoint=None, meta_additions=None)
+- out_of_scope(scope_mode, message="Out of scope for this scope_mode", remediation_hint=...)
+Add unit tests for envelope shape.
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+Prompt 4 — In-memory TTL cache + normalized cache keys
+Implement src/usaspending_mcp/cache.py:
+- TTL cache: get/set with ttl_seconds
+- Cache keys built from normalized JSON payloads (sorted keys)
+- Provide cache_hit boolean
+Write tests:
+- TTL expiry works
+- cache key normalization stable across key order differences
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+Prompt 5 — Award Type Strategy (scope_mode + award categories)
+Implement src/usaspending_mcp/award_types.py:
+- Define scope_mode enum: all_awards, contracts_only, assistance_only
+- Implement:
+  infer_scope_mode(question: str) -> scope_mode
+  get_award_type_filters(scope_mode, award_type_groups=None, catalog=None) -> dict filter payload fragment
+Rules:
+- all_awards: no restriction (or apply “all known groups” if API requires explicit list)
+- contracts_only: restrict to contracts + IDVs (use catalog mapping; fallback A-D for contracts if needed)
+- assistance_only: restrict to grants/direct payments/loans/other assistance (use catalog mapping; fallback to assistance listing/CFDA-based filters if catalog missing)
+Never hardcode large mappings; use bootstrap_catalog references where possible.
+Add unit tests:
+- inference for keywords (grant/loan/direct payment vs contract/idiq/idv/task order)
+- filter outputs per scope_mode
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+Prompt 6 — Tool: bootstrap_catalog (references for all-awards routing)
+Implement tool bootstrap_catalog(include, force_refresh=false) in src/usaspending_mcp/tools/bootstrap_catalog.py:
+- Cache TTL 24h
+- Support include items:
+  - "toptier_agencies" (required)
+  - "award_types" (required for all-awards)
+  - "filter" (recommended)
+  - "assistance_listing" (recommended)
+  - "submission_periods" (optional)
+Return: { catalog: {...} } using standard response envelope with endpoints_used and cache_hit.
+Add tests for caching and include behavior with mocked HTTP.
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+Prompt 7 — Tool: resolve_entities (agency, recipient, NAICS, PSC, CFDA)
+Implement tool resolve_entities(q, types, limit=10) in src/usaspending_mcp/tools/resolve_entities.py:
+- Recipient autocomplete: POST /autocomplete/recipient/
+- Agency: use cached toptier agencies + string scoring
+- NAICS: POST /autocomplete/naics/ (if available)
+- PSC: POST /autocomplete/psc/ (if available)
+- Assistance listing / CFDA: use references/assistance_listing or autocomplete/cfda if available
+Cache TTL 1h per normalized query.
+Return:
+{ matches: { agency:[], recipient:[], naics:[], psc:[], assistance_listing:[] }, notes:[] }
+Add deterministic tests: mocked HTTP + agency scoring unit tests.
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+Prompt 8 — Tool: award_search (list/count/both) with scope_mode
+Implement tool award_search(time_period, filters, fields, sort, order, page, limit, mode, scope_mode="all_awards", award_type_groups=None, debug=false)
+in src/usaspending_mcp/tools/award_search.py:
+- Use /api/v2/search/spending_by_award/ and /api/v2/search/spending_by_award_count/
+- Normalize payload:
+  - strip empty lists/dicts/nulls
+  - validate time_period; default last 12 months if missing
+- LLM token guardrails (MUST):
+  - Implement aggressive *response slimming* to avoid huge JSON responses
+  - Default `fields` to a minimal safe set if caller omits it (e.g., award_id, recipient_name, agency, action_date, total_obligation, award_type)
+  - Enforce hard caps: `limit<=50` by default; never return more than 200 results even if requested
+  - Add `max_bytes` (default 200_000) and `max_items_per_list` (default 200) trimming in a shared helper (e.g., response.trim_payload)
+  - If trimmed, set `meta.truncated=true` and include `meta.truncation={reason, max_bytes, max_items_per_list, returned_items}`
+- Apply award type filters via award_types.get_award_type_filters(scope_mode, award_type_groups, catalog)
+- Enforce caps (limit/pages); warn when capped
+Return meta:
+- scope_mode
+- award_type_groups_applied
+- endpoint_used/endpoints_used
+Add tests:
+- payload normalization
+- scope_mode filter application
+- count/list/both behaviors with mocked HTTP
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+Prompt 9 — Tool: award_explain (award + transactions + subawards)
+Implement tool award_explain(award_id, include=["summary","transactions"], transactions_limit=25, subawards_limit=25, scope_mode="all_awards", debug=false)
+in src/usaspending_mcp/tools/award_explain.py:
+- GET /api/v2/awards/<award_id> (summary)
+- POST /api/v2/transactions/ (by award_id) if requested
+- POST /api/v2/subawards/ if requested
+- Verify the award fits scope_mode:
+  - if scope_mode=contracts_only, reject non-contract awards
+  - if scope_mode=assistance_only, reject contract awards
+  - if all_awards, allow all
+Return endpoints_used + cache policy:
+- summary 6–24h, transactions 1–6h, subawards 24h
+Token guardrails (MUST):
+- Always slice `transactions` and `subawards` arrays to the requested limits
+- If upstream returns more than requested, include `transactions_total`/`subawards_total` when available
+- Apply shared `trim_payload(...)` to the final response bundle and set `meta.truncated=true` when trimming occurs
+Add mocked tests for scope enforcement and includes.
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+Prompt 10 — Tool: spending_rollups (Tier A/B/C) with scope_mode
+Implement spending_rollups(time_period, filters, group_by, top_n=10, metric="obligations", scope_mode="all_awards", award_type_groups=None, debug=false)
+in src/usaspending_mcp/tools/spending_rollups.py:
+- Prefer true rollup endpoints when possible:
+  - /api/v2/spending/
+  - /api/v2/federal_obligations/
+- Apply award type filters via award_types.get_award_type_filters(...)
+- Accuracy tiers:
+  - Tier A: rollup endpoint succeeded
+  - Tier C: fallback to award_search sampling (limit 100) and approximate totals
+Return meta.accuracy_tier and warnings:
+- "approximate_total" when Tier C
+Token guardrails (MUST):
+- Enforce `top_n<=25` unless debug=true
+- Trim any group arrays to top_n and include `meta.total_groups` when available
+- Apply shared `trim_payload(...)` before returning
+
+Add mocked tests that simulate rollup failure -> fallback path.
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+Prompt 11 — Tool: recipient_profile (all-awards)
+Implement recipient_profile(recipient, time_period=None, include=["profile","children","counts","rollups"], scope_mode="all_awards")
+in src/usaspending_mcp/tools/recipient_profile.py:
+- Accept recipient_id/UEI/DUNS/name; use resolve_entities when name
+- Use recipient endpoints where available for profile/children/count
+- For rollups, use spending_rollups filtered by recipient + scope_mode
+Return endpoints_used and warnings if some include not implemented yet.
+Add mocked tests for each include path (at least profile + rollups).
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+
+Prompt 12 — Tool: agency_portfolio (all-awards)
+Implement agency_portfolio(toptier_code, time_period, views=["summary","awards"], scope_mode="all_awards")
+in src/usaspending_mcp/tools/agency_portfolio.py:
+- Use agency endpoints for summary + awards views when available
+- For other “views” (object_class/program_activity/etc.), add switchboard with placeholders and warnings
+- Ensure any totals are consistent with scope_mode:
+  - either via endpoint filters or via spending_rollups scoped to agency
+Add mocked tests for summary + awards view.
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+
+Prompt 13 — Tool: idv_vehicle_bundle (contracts-only tool)
+Implement idv_vehicle_bundle(idv_award_id, include=["orders","activity","funding_rollup"], time_period=None, scope_mode="all_awards")
+in src/usaspending_mcp/tools/idv_vehicle_bundle.py:
+Rules:
+- If scope_mode is assistance_only, return out_of_scope(validation) with remediation hint.
+- If scope_mode is all_awards, allow IDV bundle when question intent implies IDV; otherwise router should not call it.
+Use IDV endpoints:
+- /api/v2/idvs/awards/ (orders)
+- /api/v2/idvs/activity/
+- /api/v2/idvs/funding_rollup/
+Add mocked tests for:
+- assistance_only rejection
+- one successful include path
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+
+Prompt 14 — Router + Orchestrator tool (plan + result, cost-optimized)
+Implement router.py and router_rules.json plus tool answer_award_spending_question(question, debug=false) with cost controls:
+
+A) router_rules.json (declarative cost policy)
+Create src/usaspending_mcp/router_rules.json with at least:
+- version: "1.0"
+- budgets:
+  - max_tool_calls_per_question: 3            # total MCP tool invocations in one answer
+  - max_usaspending_requests: 5              # total outbound HTTP requests budget
+  - max_wall_ms: 12000                       # end-to-end wall clock budget
+  - max_response_bytes: 200000               # max serialized JSON size returned
+  - max_items_per_list: 200                  # list trimming cap
+- caching_ttl_seconds (per logical bucket):
+  - references: 86400
+  - entity_resolution: 3600
+  - rollups: 1800
+  - award_summary: 21600
+  - award_details: 10800
+- defaults:
+  - scope_mode_default: "all_awards"
+  - award_search: { limit_default: 50, limit_max: 200, fields_profile: "thin" }
+  - spending_rollups: { top_n_default: 10, top_n_max: 25 }
+  - output_policy: { summary_first: true, require_award_id_for_explain: true }
+- routes (ordered, cheap-first) with cost hints and hard preconditions:
+  1) totals/topN -> spending_rollups (cost: 1 request)
+  2) list awards -> award_search (cost: 1–2 requests)
+  3) award_id present -> award_explain (cost: 2–4 requests; must have award_id)
+  4) IDV intent -> idv_vehicle_bundle (cost: 2–5 requests; deny if assistance_only)
+- fallbacks: per route, define next-best tool if the primary fails (e.g., rollups -> search+aggregate)
+
+B) router.py (deterministic planner)
+Implement src/usaspending_mcp/router.py:
+- Infer scope_mode using award_types.infer_scope_mode(question) with rules defaults
+- Extract signals: award_id, idv_award_id patterns, agency hints, recipient hints, time windows, top N, geography
+- If entities unclear: call resolve_entities (counts toward budgets), then re-plan
+- Choose cheapest valid route that satisfies preconditions AND stays within budgets
+  - Use route order as tie-breaker; expose route_name in meta
+- Enforce summary-first output shaping:
+  - Default detail_level="summary" unless question explicitly asks for transactions/subawards/full payload OR debug=true
+  - Always apply shared trim_payload(max_response_bytes, max_items_per_list) before returning
+- Budget enforcement behaviors:
+  - If resolving entities + primary tool would exceed max_usaspending_requests, return a narrowed-plan response with a clear refinement suggestion (no expensive calls)
+- Return standard envelope with plan + result:
+  { tool_version, meta:{ request_id, scope_mode, route_name, outbound_calls, cache_hit?, truncated?, truncation?, budgets_used? }, plan:{ scope_mode, actions[] }, result }
+
+C) Tests (no live HTTP)
+Add unit tests with fully mocked tool calls to verify:
+- Route selection for golden questions
+- award_explain never runs without award_id
+- assistance_only denies IDV route
+- Budgets: router stops and asks to refine when budgets would be exceeded
+- Summary-first: default response is thin; full detail only when requested
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+
+Prompt 15 — Golden Questions acceptance tests (expanded)
+Create tests/test_golden_questions.py with mocked dependencies validating:
+- Router selects correct scope_mode and tool path
+Golden questions must include:
+1) Top 10 contract awards for DoD in FY2024
+2) Task orders under IDV <idv_award_id>
+3) How much did DHS obligate on grants last quarter?
+4) Top recipients for NIH grants in 2023
+5) Total loans by agency for FY2022
+6) Direct payments by state for last year
+7) All awards total for a given agency in a given FY
+Each test asserts:
+- chosen scope_mode
+- chosen tool
+- response envelope fields exist (tool_version/meta/request_id)
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+
+Prompt 16 — MCP server wiring (dual transport) + local runners
+Wire all tools using FastMCP, but keep transport entrypoints separate:
+1) In src/usaspending_mcp/server.py (tool registry only):
+   - Create `mcp = FastMCP("USAspending MCP")`
+   - Register all tools (import from src/usaspending_mcp/tools/*)
+   - Do NOT start a server at import time
+2) Create src/usaspending_mcp/stdio_server.py:
+   - Imports `mcp` from server.py
+   - Implements `main()` that calls `mcp.run()` (stdio transport)
+3) Create src/usaspending_mcp/http_app.py:
+   - Creates FastAPI `app`
+   - Mount MCP Streamable HTTP at `/mcp` using `app.mount("/mcp", mcp.streamable_http_app())`
+   - Add GET /healthz and GET /readyz
+   - Implement readiness flag and startup event
+4) Update README with:
+   - Local stdio run: `uv run python -m usaspending_mcp.stdio_server`
+   - Local HTTP run: `uv run uvicorn usaspending_mcp.http_app:app --host 127.0.0.1 --port 8080`
+Add tests for:
+- stdio module imports cleanly
+- http_app exposes /healthz and /readyz
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+PROMPT 17A — Uvicorn/FastAPI app + health routes
+Goal: Cloud Run requires an HTTP server. We will run with uvicorn, so we need a FastAPI `app` export.
+1) Ensure src/usaspending_mcp/http_app.py exports:
+   - `app: FastAPI` at module level (so uvicorn can import it)
+2) Add routes:
+   - GET /healthz -> 200 {"status":"ok"}
+   - GET /readyz -> 200 {"ready":"true"} only after startup completes
+3) Implement readiness flag:
+   - Default False at import time
+   - Set True on FastAPI startup event or lifespan completion
+   - If not ready, /readyz returns 503 {"ready":"false"}
+4) Do NOT break existing MCP tool routes. If MCP routes are mounted, keep them.
+5) Add tests using FastAPI TestClient:
+   - /healthz returns 200
+   - /readyz returns 503 before startup, then 200 after startup
+Run: `uv run pytest -q` and fix failures.
+Output: diff + local curl examples.
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+PROMPT 17B — Uvicorn bind behavior
+1) In src/usaspending_mcp/http_app.py, add a `main()` that:
+   - Reads PORT from env (default 8080)
+   - Runs uvicorn with host=0.0.0.0 port=$PORT
+   - Example: uvicorn.run("usaspending_mcp.http_app:app", host="0.0.0.0", port=port, log_level=LOG_LEVEL)
+2) Ensure local run works:
+   - uv run python -m usaspending_mcp.stdio_server
+   - uv run uvicorn usaspending_mcp.http_app:app --host 0.0.0.0 --port 8080
+3) Add a small unit test validating that PORT env var parsing works (no actual server start).
+Run: `uv run pytest -q`.
+Output: diff + exact run commands.
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+PROMPT 17C — Dockerfile for Uvicorn/FastAPI (Cloud Run)
+Create/Update:
+1) Dockerfile:
+   - Base: python:3.12-slim (or 3.11-slim if needed)
+   - Install dependencies (choose one):
+     Option A: install uv in container and run `uv sync --frozen`
+     Option B: pip install with a pinned lock/export
+   - Copy src/ and required files
+   - Expose PORT (Cloud Run sets it)
+   - CMD:
+     uvicorn usaspending_mcp.http_app:app --host 0.0.0.0 --port ${PORT:-8080}
+2) .dockerignore:
+   - .venv, __pycache__, .pytest_cache, .git, dist, build, *.pyc, tests (optional)
+Validate locally:
+- docker build -t usaspending-mcp .
+- docker run -e PORT=8080 -p 8080:8080 usaspending-mcp
+- curl http://localhost:8080/healthz
+- curl -i http://localhost:8080/readyz
+Run: `uv run pytest -q`.
+Output: diff + docker commands.
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+PROMPT 17D — scripts/deploy_cloud_run.sh (private service)
+Create scripts/deploy_cloud_run.sh:
+- Usage: PROJECT_ID=... REGION=... SERVICE_NAME=... ./scripts/deploy_cloud_run.sh
+- Deploy using:
+  gcloud run deploy $SERVICE_NAME \
+    --source . \
+    --project $PROJECT_ID \
+    --region $REGION \
+    --no-allow-unauthenticated
+- Set env vars:
+  DEFAULT_SCOPE_MODE=all_awards
+  USASPENDING_BASE_URL=https://api.usaspending.gov/api/v2
+  USASPENDING_TIMEOUT_S=30
+  USASPENDING_MAX_RETRIES=3
+  USASPENDING_BACKOFF_BASE_S=0.5
+  LOG_LEVEL=INFO
+  FASTMCP_STATELESS_HTTP=true
+Also create scripts/get_service_url.sh that prints the Cloud Run URL.
+Output: patch + exact deploy commands + how to read logs.
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+PROMPT 17E — scripts/smoke_test_cloud_run.sh (private auth)
+Create scripts/smoke_test_cloud_run.sh:
+- Usage: SERVICE_URL=... ./scripts/smoke_test_cloud_run.sh
+- Create identity token:
+  TOKEN=$(gcloud auth print-identity-token)
+- Call:
+  curl -fsS -H "Authorization: Bearer $TOKEN" "$SERVICE_URL/healthz"
+  curl -fsS -H "Authorization: Bearer $TOKEN" "$SERVICE_URL/readyz"
+- Then call one safe endpoint for your MCP server:
+  - If MCP uses a known HTTP route (e.g., POST /mcp or /tools/...), invoke bootstrap_catalog safely.
+  - If MCP is only accessible via MCP framing, document the exact request shape in the script comments and implement it.
+Fail fast on any non-200.
+Output: patch + exact usage example.
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+PROMPT 17F — README: Deploying to Cloud Run (Uvicorn)
+Update README.md with:
+1) Local run:
+   - uv sync
+   - uv run uvicorn usaspending_mcp.http_app:app --host 0.0.0.0 --port 8080
+2) Docker run:
+   - docker build ...
+   - docker run ... and curl /healthz
+3) Deploy private:
+   - scripts/deploy_cloud_run.sh
+4) Grant Invoker:
+   gcloud run services add-iam-policy-binding $SERVICE_NAME \
+     --member="user:EMAIL" \
+     --role="roles/run.invoker" \
+     --region $REGION --project $PROJECT_ID
+5) Call with token:
+   TOKEN=$(gcloud auth print-identity-token)
+   curl -H "Authorization: Bearer $TOKEN" $SERVICE_URL/healthz
+Output: patch only.
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+Tiny but important Uvicorn note
+Make sure to keep this invariant:
+http_app.py exports app
+Docker/Cloud Run runs:
+ uvicorn usaspending_mcp.http_app:app --host 0.0.0.0 --port ${PORT:-8080}
+
+That single detail prevents ~80% of Cloud Run deployment headaches.
+
+One extra “rule” I’d recommend adding to every prompt
+After each implementation step, Codex should run:
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+PROMPT 17G — scripts/bootstrap_gcp.sh (least privilege IAM + Artifact Registry)
+Create scripts/bootstrap_gcp.sh that prepares a *minimal* GCP setup for Cloud Build + Cloud Run.
+Requirements:
+1) Enable APIs (idempotent):
+   - run.googleapis.com
+   - cloudbuild.googleapis.com
+   - artifactregistry.googleapis.com
+2) Create Artifact Registry repo if missing (Docker):
+   - Name: $AR_REPO (default: usaspending-mcp)
+   - Location: $REGION
+3) Service Accounts (principle of least privilege):
+   A) Cloud Run Runtime SA (default: ${SERVICE_NAME}-runtime):
+      - If the service only calls public USAspending, grant NO extra roles.
+      - If using Secret Manager, grant only: roles/secretmanager.secretAccessor on specific secrets.
+   B) Cloud Build Deploy SA (default: ${SERVICE_NAME}-deployer):
+      - Grant minimal roles to *deploy* Cloud Run and push images:
+        - roles/run.admin (or narrower if you choose)
+        - roles/iam.serviceAccountUser on the Runtime SA
+        - roles/artifactregistry.writer on the AR repo
+4) Make Cloud Run service private by default:
+   - Do NOT grant allUsers invoker
+   - Provide a helper command to add invoker for a user/group:
+     gcloud run services add-iam-policy-binding ... --role roles/run.invoker
+Output:
+- The script
+- A short README snippet with example usage
+Run shellcheck-friendly bash (set -euo pipefail).
+
+PROMPT 18 — cloudbuild.yaml (unit + integration + optional deploy)
+Create cloudbuild.yaml that:
+1) Runs unit tests (fast) using uv:
+   - uv sync --frozen
+   - uv run pytest -q -m "not integration"
+2) Builds the app image and tags it to Artifact Registry.
+3) Runs integration tests deterministically:
+   - Start mock-usaspending container
+   - Start app container pointing to mock base URL
+   - Run pytest -q -m integration against http://localhost:18080
+4) Pushes image to Artifact Registry.
+5) Optional deploy step to Cloud Run controlled by substitution _DEPLOY (true/false).
+6) Uses a deployer service account (least privilege) when deploying.
+Include substitutions:
+- _REGION, _SERVICE_NAME, _AR_REPO, _DEPLOY
+
+PROMPT 19 — docker-compose.yml (dev + test profiles)
+Create docker-compose.yml with profiles:
+- dev: runs the app (HTTP) at :8080 with USASPENDING_BASE_URL pointed to real API
+- test: runs mock-usaspending + app (pointed to mock) + tests container that executes `pytest -m integration`
+Requirements:
+- Healthcheck for app uses /healthz and /readyz
+- app mounts /mcp for MCP Streamable HTTP
+- Expose test app on host port 18080
+
+PROMPT 20 — Full test suite (unit + integration; HTTP + optional stdio)
+Implement a full pytest suite:
+- Unit tests:
+  - client retry/backoff, error mapping
+  - payload normalization
+  - award type scope_mode inference and filter fragments
+  - response envelope shape
+  - trim_payload token guardrails
+- Integration tests (docker-compose profile test):
+  - MCP initialize + tools/list over HTTP (/mcp)
+  - One safe tool call that hits mock-usaspending (e.g., bootstrap_catalog or award_search)
+- Optional STDIO integration test:
+  - spawn `python -m usaspending_mcp.stdio_server` and validate initialize/tools/list via MCP stdio framing
+Mark integration tests with @pytest.mark.integration and add pytest.ini markers for both unit and integration.
+
+PROMPT 21 — Repo hygiene: .gitignore, .dockerignore, .gcloudignore, .env.example
+Create:
+- .gitignore (.venv, __pycache__, .pytest_cache, .mypy_cache, dist, build, .coverage, coverage.xml)
+- .dockerignore (same + .git + large artifacts)
+- .gcloudignore (exclude tests, local caches, and build artifacts from Cloud Build context)
+- .env.example with documented env vars:
+  DEFAULT_SCOPE_MODE, USASPENDING_BASE_URL, USASPENDING_TIMEOUT_S, USASPENDING_MAX_RETRIES, USASPENDING_BACKOFF_BASE_S,
+  LOG_LEVEL, FASTMCP_STATELESS_HTTP, MAX_RESPONSE_BYTES, MAX_ITEMS_PER_LIST
+
+PROMPT 22 — Quality gates: ruff/format/type/coverage
+Add:
+- ruff config + formatter (or black) and run in Cloud Build
+- mypy or pyright (optional but recommended)
+- pytest-cov with a modest threshold (e.g., 60% initially)
+Update cloudbuild.yaml to fail on lint/type/coverage violations.
+
+PROMPT 23 — Security gates (optional but recommended)
+Add optional steps and docs:
+- pip-audit (dependencies)
+- gitleaks (secrets)
+- trivy scan on the built image
+Make these controllable via substitutions (e.g., _SECURITY_SCAN=true/false) so early iteration stays fast.
+
+PROMPT 24 — Makefile + scripts/run_all.sh
+Create a Makefile (or scripts/run_all.sh) with common targets:
+- make unit
+- make integration (docker compose --profile test up ...)
+- make lint
+- make build
+- make run-http
+- make run-stdio
+Document in README.
+
+---
+
+## SUPPLEMENTAL PROMPTS (Address PRD Gaps)
+
+The following prompts fill gaps between the PRD and the main prompt sequence above.
+
+---
+
+PROMPT 6.5 — Mock USAspending Server (deterministic integration testing)
+Create mock_usaspending/ directory with a minimal Flask or FastAPI server that returns deterministic JSON responses for integration tests.
+
+Requirements:
+1) Create mock_usaspending/app.py with these endpoints:
+   - GET /api/v2/references/toptier_agencies/ -> static list of 5 agencies
+   - GET /api/v2/references/award_types/ -> static award type mapping
+   - GET /api/v2/references/filter_tree/psc/ -> minimal PSC tree
+   - GET /api/v2/references/cfda/totals/ -> 3 sample CFDA entries
+   - POST /api/v2/autocomplete/recipient/ -> return matches for "CACI", "Lockheed", "Booz"
+   - POST /api/v2/autocomplete/naics/ -> return matches for "541" (professional services)
+   - POST /api/v2/autocomplete/psc/ -> return matches for "cloud", "IT"
+   - POST /api/v2/autocomplete/cfda/ -> return matches for "20.205", "93.778"
+   - POST /api/v2/search/spending_by_award/ -> return 10 sample awards (mix of contracts + grants)
+   - POST /api/v2/search/spending_by_award_count/ -> return {"count": 1234}
+   - GET /api/v2/awards/<award_id>/ -> return sample award detail (use fixtures)
+   - POST /api/v2/transactions/ -> return 5 sample transactions
+   - POST /api/v2/subawards/ -> return 3 sample subawards
+   - POST /api/v2/spending/ -> return rollup totals by agency
+   - GET /api/v2/recipient/<recipient_id>/ -> sample recipient profile
+   - POST /api/v2/idvs/awards/ -> return 3 sample task orders
+   - POST /api/v2/idvs/activity/ -> return IDV activity summary
+   - POST /api/v2/idvs/funding_rollup/ -> return funding breakdown
+
+2) Support query parameter ?scenario= for edge cases:
+   - ?scenario=empty -> return empty results
+   - ?scenario=error_400 -> return 400 with validation error JSON
+   - ?scenario=error_429 -> return 429 rate limit
+   - ?scenario=error_500 -> return 500 upstream error
+   - ?scenario=large -> return max-size response (for trimming tests)
+
+3) Create mock_usaspending/fixtures/ with JSON files:
+   - toptier_agencies.json
+   - award_types.json
+   - sample_awards.json (10 awards: 5 contracts, 2 grants, 1 loan, 1 direct payment, 1 other)
+   - sample_award_detail_contract.json
+   - sample_award_detail_grant.json
+   - sample_transactions.json
+   - sample_recipient.json
+   - sample_idv_orders.json
+
+4) Create mock_usaspending/Dockerfile:
+   - Base: python:3.12-slim
+   - Install flask or fastapi+uvicorn
+   - Expose port 8081
+   - CMD to run the mock server
+
+5) Update docker-compose.yml to add mock-usaspending service in "test" profile.
+
+Add tests:
+- test mock server starts and /api/v2/references/toptier_agencies/ returns expected shape
+- test ?scenario=error_400 returns proper error structure
+
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+---
+
+PROMPT 15.1 — Missing Golden Question: Entity Resolution
+Add to tests/test_golden_questions.py:
+
+8) "Resolve: 'CACI', 'cloud PSC', and 'Assistance Listing 20.205'"
+
+This test must assert:
+- Router calls resolve_entities tool
+- Response contains matches for:
+  - recipient: at least one match containing "CACI"
+  - psc: at least one match for cloud-related PSC codes
+  - assistance_listing: match for CFDA 20.205 (Highway Planning and Construction)
+- Response envelope has tool_version, meta.request_id, meta.endpoints_used
+
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+---
+
+PROMPT 25 — Success Metrics Validation Suite
+Create tests/test_success_metrics.py to validate PRD success metrics under simulated load.
+
+Requirements:
+1) Test: average outbound calls per question ≤ 3
+   - Run all 8 golden questions through answer_award_spending_question
+   - Assert average meta.outbound_calls <= 3
+   - Assert P95 meta.outbound_calls <= 5
+
+2) Test: response size ≤ 200KB (P95)
+   - For each golden question, serialize response to JSON
+   - Assert P95 response size <= 200_000 bytes
+   - Assert all responses have meta.truncated=true OR size < 200KB
+
+3) Test: no 400 errors for golden questions
+   - All 8 golden questions must return valid responses (no error.type="validation")
+
+4) Test: cache effectiveness
+   - Run bootstrap_catalog twice
+   - Assert second call has meta.cache_hit=true
+   - Run resolve_entities("CACI") twice within 1 hour TTL
+   - Assert second call has meta.cache_hit=true
+
+5) Test: latency buckets (informational, not blocking)
+   - Log P50 and P95 latency for each tool category
+   - Reference endpoints should be < 500ms (cached)
+   - Rollups should be < 2000ms
+   - Search should be < 3000ms
+
+Mark all tests with @pytest.mark.metrics.
+These tests run against mock_usaspending (not live API).
+
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+---
+
+PROMPT 26 — Remediation Hint Patterns
+Update src/usaspending_mcp/response.py to include standardized remediation hints per error type.
+
+Create REMEDIATION_HINTS dict:
+```python
+REMEDIATION_HINTS = {
+    "validation": {
+        "invalid_time_period": "Use format: {'start_date': 'YYYY-MM-DD', 'end_date': 'YYYY-MM-DD'} or {'fy': '2024'}",
+        "invalid_agency": "Use toptier_code from bootstrap_catalog, e.g., '097' for DoD",
+        "invalid_award_type": "Valid award types: 'A','B','C','D' (contracts), '02','03','04','05','06','07','08','09','10','11' (assistance)",
+        "missing_required_filter": "At least one filter required: agency, recipient, time_period, or award_type",
+        "invalid_scope_mode": "Valid scope_modes: 'all_awards', 'contracts_only', 'assistance_only'",
+        "award_id_required": "award_explain requires an award_id. Use award_search first to find award IDs.",
+        "idv_not_in_scope": "IDV tools not available for assistance_only scope. Use scope_mode='contracts_only' or 'all_awards'.",
+    },
+    "rate_limit": {
+        "default": "USAspending API rate limited. Retry in 60 seconds or reduce query scope.",
+    },
+    "upstream": {
+        "default": "USAspending API returned an error. Try again or simplify your query.",
+        "timeout": "Request timed out. Try a narrower time_period or fewer filters.",
+    },
+    "network": {
+        "default": "Network error connecting to USAspending. Check connectivity and retry.",
+    },
+}
+```
+
+Update fail() helper to auto-select remediation_hint based on error_type and optional hint_key:
+```python
+def fail(error_type, message, hint_key=None, ...):
+    hint = REMEDIATION_HINTS.get(error_type, {}).get(hint_key or "default")
+    ...
+```
+
+Add tests verifying remediation hints are included in error responses.
+
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+---
+
+PROMPT 27 — Endpoint-to-Tool Mapping Reference
+Create src/usaspending_mcp/endpoint_map.py as a reference document and runtime helper.
+
+This file serves two purposes:
+1) Documentation: maps each tool to the USAspending endpoints it may call
+2) Runtime: provides endpoint metadata for observability
+
+```python
+ENDPOINT_MAP = {
+    "bootstrap_catalog": {
+        "endpoints": [
+            "/api/v2/references/toptier_agencies/",
+            "/api/v2/references/award_types/",
+            "/api/v2/references/filter_tree/psc/",
+            "/api/v2/references/filter_tree/naics/",
+            "/api/v2/references/cfda/totals/",
+            "/api/v2/references/submission_periods/",
+        ],
+        "methods": ["GET"],
+        "cost_hint": 1,
+    },
+    "resolve_entities": {
+        "endpoints": [
+            "/api/v2/autocomplete/recipient/",
+            "/api/v2/autocomplete/naics/",
+            "/api/v2/autocomplete/psc/",
+            "/api/v2/autocomplete/cfda/",
+            "/api/v2/autocomplete/location/",
+        ],
+        "methods": ["POST"],
+        "cost_hint": 1,
+    },
+    "award_search": {
+        "endpoints": [
+            "/api/v2/search/spending_by_award/",
+            "/api/v2/search/spending_by_award_count/",
+        ],
+        "methods": ["POST"],
+        "cost_hint": 2,
+    },
+    "award_explain": {
+        "endpoints": [
+            "/api/v2/awards/{award_id}/",
+            "/api/v2/transactions/",
+            "/api/v2/subawards/",
+            "/api/v2/awards/{award_id}/funding/",
+            "/api/v2/awards/{award_id}/funding_rollup/",
+        ],
+        "methods": ["GET", "POST"],
+        "cost_hint": 4,
+    },
+    "spending_rollups": {
+        "endpoints": [
+            "/api/v2/spending/",
+            "/api/v2/federal_obligations/",
+            "/api/v2/spending/agency/{toptier_code}/",
+            "/api/v2/spending/object_class/",
+        ],
+        "methods": ["POST", "GET"],
+        "cost_hint": 1,
+    },
+    "recipient_profile": {
+        "endpoints": [
+            "/api/v2/recipient/{recipient_id}/",
+            "/api/v2/recipient/{recipient_id}/children/",
+            "/api/v2/recipient/count/",
+            "/api/v2/recipient/state/",
+        ],
+        "methods": ["GET", "POST"],
+        "cost_hint": 3,
+    },
+    "agency_portfolio": {
+        "endpoints": [
+            "/api/v2/agency/{toptier_code}/",
+            "/api/v2/agency/{toptier_code}/awards/",
+            "/api/v2/agency/{toptier_code}/budgetary_resources/",
+            "/api/v2/agency/{toptier_code}/object_class/",
+            "/api/v2/agency/{toptier_code}/program_activity/",
+            "/api/v2/agency/{toptier_code}/federal_account/",
+        ],
+        "methods": ["GET"],
+        "cost_hint": 3,
+    },
+    "idv_vehicle_bundle": {
+        "endpoints": [
+            "/api/v2/idvs/awards/",
+            "/api/v2/idvs/activity/",
+            "/api/v2/idvs/funding/",
+            "/api/v2/idvs/funding_rollup/",
+            "/api/v2/idvs/amounts/{award_id}/",
+        ],
+        "methods": ["GET", "POST"],
+        "cost_hint": 4,
+    },
+}
+
+def get_endpoints_for_tool(tool_name: str) -> list[str]:
+    """Return list of endpoints a tool may call."""
+    return ENDPOINT_MAP.get(tool_name, {}).get("endpoints", [])
+
+def get_cost_hint(tool_name: str) -> int:
+    """Return estimated number of HTTP calls for a tool."""
+    return ENDPOINT_MAP.get(tool_name, {}).get("cost_hint", 1)
+```
+
+Add unit tests verifying all 9 tools are mapped.
+
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+---
+
+PROMPT 28 — Open Questions Resolution (Design Decisions)
+Update router_rules.json and award_types.py to codify decisions for PRD open questions.
+
+Add to router_rules.json under new "design_decisions" key:
+```json
+{
+  "design_decisions": {
+    "ambiguous_scope_default": "all_awards",
+    "ambiguous_scope_behavior": "infer_not_ask",
+    "default_metric": "obligations",
+    "metric_by_award_type": {
+      "contracts": "obligations",
+      "grants": "obligations",
+      "loans": "face_value_of_loan",
+      "direct_payments": "obligations",
+      "other": "obligations"
+    },
+    "agency_default": "awarding_agency",
+    "agency_inference_keywords": {
+      "funded_by": "funding_agency",
+      "funding_agency": "funding_agency",
+      "received_from": "funding_agency"
+    },
+    "award_category_normalization": {
+      "output_field": "award_category",
+      "values": ["contract", "idv", "grant", "loan", "direct_payment", "other_assistance"]
+    },
+    "scope_mode_control": "both",
+    "scope_mode_param_name": "scope_mode",
+    "scope_mode_inference_default": true
+  }
+}
+```
+
+Update router.py to read these decisions:
+- Use `design_decisions.ambiguous_scope_default` when inference is uncertain
+- Use `design_decisions.default_metric` in spending_rollups
+- Use `design_decisions.agency_default` and check for `agency_inference_keywords` in question
+- Normalize award types to `award_category_normalization.values` in all tool outputs
+
+Update award_types.py:
+- Add `normalize_award_category(raw_type: str) -> str` that maps USAspending award types to the 6 canonical categories
+
+Add tests:
+- "funded by DoD" infers funding_agency
+- "DoD contracts" infers awarding_agency (default)
+- Loans default to face_value_of_loan metric
+- Award category normalization works for all known types
+
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+---
+
+
+PROMPT 29 — Data Freshness Endpoints (Sprint 3 prep)
+Implement data freshness checking to answer "Is this data current?" questions.
+
+Add to src/usaspending_mcp/tools/data_freshness.py:
+```python
+def data_freshness(check_type: str = "submission_periods", agency_code: str = None, debug: bool = False):
+    """
+    Check data freshness/currency.
+
+    Args:
+        check_type: One of "submission_periods", "agency_reporting", "last_updated"
+        agency_code: Required for agency_reporting check
+        debug: Include raw endpoint responses
+
+    Returns:
+        - submission_periods: latest closed period, days since close
+        - agency_reporting: agency's latest submission date, missing periods
+        - last_updated: awards table last update timestamp
+    """
+```
+
+Endpoints to use:
+- /api/v2/references/submission_periods/ -> find latest period with is_quarter=true
+- /api/v2/reporting/agencies/{toptier_code}/overview/ -> agency submission status
+- /api/v2/awards/last_updated/ -> database freshness
+
+Return format:
+```json
+{
+  "tool_version": "1.0",
+  "freshness": {
+    "latest_period": {"fy": 2024, "quarter": 3, "submission_due": "2024-08-14"},
+    "data_as_of": "2024-08-10",
+    "days_since_update": 3,
+    "agency_status": {...}  // if agency_code provided
+  },
+  "meta": {...}
+}
+```
+
+Register tool in server.py.
+
+Add mocked tests for each check_type.
+
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+---
+
+## APPENDIX A — Golden Questions Complete List (All 8)
+
+For reference, the complete golden questions from the PRD that must all be tested:
+
+1. "Top 10 awards (all types) for DoD in FY2024"
+   - scope_mode: all_awards
+   - tool: spending_rollups or award_search
+   - filters: agency=DoD, time_period=FY2024
+
+2. "How much did DHS obligate last quarter on grants?"
+   - scope_mode: assistance_only (inferred from "grants")
+   - tool: spending_rollups
+   - filters: agency=DHS, time_period=last_quarter, award_type=grants
+
+3. "Explain award CONT_AWD_123 and show key transactions"
+   - scope_mode: contracts_only (inferred from award_id pattern)
+   - tool: award_explain
+   - include: summary, transactions
+
+4. "Top recipients for NIH grants in 2023"
+   - scope_mode: assistance_only
+   - tool: spending_rollups (group_by=recipient)
+   - filters: agency=NIH, time_period=2023, award_type=grants
+
+5. "Task orders under IDV IDVPIID123"
+   - scope_mode: contracts_only
+   - tool: idv_vehicle_bundle
+   - include: orders
+
+6. "Resolve: 'CACI', 'cloud PSC', and 'Assistance Listing 20.205'"
+   - tool: resolve_entities
+   - types: recipient, psc, assistance_listing
+
+7. "Total loans by agency for FY2022"
+   - scope_mode: assistance_only (inferred from "loans")
+   - tool: spending_rollups
+   - group_by: agency, filters: award_type=loans, time_period=FY2022
+
+8. "Direct payments by state for last year"
+   - scope_mode: assistance_only
+   - tool: spending_rollups
+   - group_by: state/geography, filters: award_type=direct_payments
+
+---
+
+## APPENDIX B — Scope Mode Keyword Triggers
+
+Reference for award_types.infer_scope_mode():
+
+**contracts_only triggers:**
+- "contract", "contracts"
+- "idv", "idiq", "gwac", "bpa", "fss"
+- "task order", "delivery order"
+- "procurement", "procurements"
+- "vendor" (when combined with contract context)
+- Award ID patterns: CONT_AWD_*, CONT_IDV_*, *PIID*
+
+**assistance_only triggers:**
+- "grant", "grants"
+- "loan", "loans"
+- "direct payment", "direct payments"
+- "assistance", "financial assistance"
+- "cfda", "assistance listing"
+- "cooperative agreement"
+- "subsidy", "subsidies"
+- Award ID patterns: ASST_*
+
+**all_awards (default):**
+- No specific triggers detected
+- Mixed terms ("awards", "spending", "obligations")
+- Ambiguous or general questions
+
+---
+
+## RESILIENCE & OBSERVABILITY PROMPTS
+
+---
+
+PROMPT 30 — Circuit Breaker Pattern
+Add circuit breaker to src/usaspending_mcp/usaspending_client.py to prevent cascading failures.
+
+Requirements:
+1) Add circuit breaker configuration to router_rules.json:
+```json
+{
+  "circuit_breaker": {
+    "failure_threshold": 5,
+    "recovery_timeout_seconds": 60,
+    "half_open_requests": 2
+  }
+}
+```
+
+2) Implement CircuitBreaker class:
+```python
+class CircuitBreaker:
+    """
+    States: CLOSED (normal), OPEN (failing fast), HALF_OPEN (testing recovery)
+    """
+    def __init__(self, failure_threshold: int, recovery_timeout: int, half_open_requests: int):
+        self.state = "CLOSED"
+        self.failure_count = 0
+        self.last_failure_time = None
+        # ...
+
+    def call(self, func, *args, **kwargs):
+        if self.state == "OPEN":
+            if self._should_try_reset():
+                self.state = "HALF_OPEN"
+            else:
+                raise CircuitOpenError("Circuit breaker is open")
+
+        try:
+            result = func(*args, **kwargs)
+            self._on_success()
+            return result
+        except Exception as e:
+            self._on_failure()
+            raise
+```
+
+3) Wrap USAspending client calls with circuit breaker
+4) Log state transitions: CLOSED->OPEN, OPEN->HALF_OPEN, HALF_OPEN->CLOSED
+
+Add tests:
+- Circuit opens after N failures
+- Circuit stays open for recovery_timeout
+- Half-open allows limited requests
+- Successful half-open request closes circuit
+
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+---
+
+PROMPT 31 — Structured Logging Format
+Define and implement consistent structured logging across all components.
+
+Requirements:
+1) Create src/usaspending_mcp/logging_config.py:
+```python
+import json
+import logging
+from datetime import datetime
+
+LOG_SCHEMA = {
+    "timestamp": "ISO8601",
+    "level": "INFO|WARN|ERROR",
+    "request_id": "uuid",
+    "tool_name": "string|null",
+    "endpoint": "string|null",
+    "method": "GET|POST|null",
+    "status_code": "int|null",
+    "latency_ms": "int|null",
+    "cache_hit": "bool|null",
+    "error_type": "string|null",
+    "circuit_state": "CLOSED|OPEN|HALF_OPEN|null",
+    "message": "string"
+}
+
+class StructuredFormatter(logging.Formatter):
+    def format(self, record):
+        log_entry = {
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "level": record.levelname,
+            "message": record.getMessage(),
+            "request_id": getattr(record, "request_id", None),
+            "tool_name": getattr(record, "tool_name", None),
+            "endpoint": getattr(record, "endpoint", None),
+            "status_code": getattr(record, "status_code", None),
+            "latency_ms": getattr(record, "latency_ms", None),
+            "cache_hit": getattr(record, "cache_hit", None),
+            "error_type": getattr(record, "error_type", None),
+        }
+        # Remove None values for cleaner output
+        log_entry = {k: v for k, v in log_entry.items() if v is not None}
+        return json.dumps(log_entry)
+```
+
+2) Create logging context manager for request tracking:
+```python
+@contextmanager
+def log_context(request_id: str, tool_name: str = None):
+    """Attach context to all log messages within scope"""
+    ...
+```
+
+3) Update usaspending_client.py to use structured logging
+4) Ensure all tools log: start, success/failure, latency
+
+Add tests verifying log output is valid JSON with required fields.
+
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+---
+===========================================================
+===========================================================
+===========================================================
+===========================================================
+PICK UP HERE AS GMINI USER LIMIT REACHED FOR ALL PRO MODELS ------JAN 18TH 2026
+===========================================================
+===========================================================
+===========================================================
+===========================================================
+PROMPT 32 — Load Testing
+Create load testing infrastructure using Locust.
+
+Requirements:
+1) Add locust to dev dependencies in pyproject.toml
+
+2) Create tests/load/locustfile.py:
+```python
+from locust import HttpUser, task, between
+
+class USAspendingMCPUser(HttpUser):
+    wait_time = between(1, 3)
+
+    def on_start(self):
+        """Bootstrap catalog on user start"""
+        self.client.post("/mcp", json={
+            "jsonrpc": "2.0",
+            "id": 0,
+            "method": "tools/call",
+            "params": {
+                "name": "bootstrap_catalog",
+                "arguments": {"include": ["toptier_agencies"]}
+            }
+        })
+
+    @task(3)
+    def spending_rollups(self):
+        """Most common: totals questions"""
+        self.client.post("/mcp", json={
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {
+                "name": "spending_rollups",
+                "arguments": {
+                    "time_period": {"fy": "2024"},
+                    "group_by": "agency",
+                    "top_n": 10
+                }
+            }
+        })
+
+    @task(2)
+    def award_search(self):
+        """Second most common: list awards"""
+        ...
+
+    @task(1)
+    def resolve_entities(self):
+        """Less common: entity resolution"""
+        ...
+```
+
+3) Create tests/load/README.md with run instructions:
+```markdown
+# Load Testing
+
+## Run locally against mock server
+docker compose --profile test up -d
+locust -f tests/load/locustfile.py --host http://localhost:18080
+
+## Run against Cloud Run (with auth)
+export AUTH_TOKEN=$(gcloud auth print-identity-token)
+locust -f tests/load/locustfile.py --host $SERVICE_URL
+```
+
+4) Define performance acceptance criteria:
+- 10 concurrent users: P95 < 5s, 0% errors
+- 50 concurrent users: P95 < 10s, < 1% errors
+- 100 concurrent users: P95 < 15s, < 5% errors
+
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+---
+
+PROMPT 33 — Failure Injection Testing
+Create tests that exercise error handling and recovery paths.
+
+Requirements:
+1) Create tests/test_failure_injection.py:
+```python
+import pytest
+
+class TestRetryBehavior:
+    def test_retry_on_429(self, mock_usaspending):
+        """First call returns 429, second succeeds"""
+        mock_usaspending.set_scenario("error_429_then_success")
+        result = award_search(...)
+        assert "results" in result
+        assert mock_usaspending.call_count == 2
+
+    def test_retry_exhaustion(self, mock_usaspending):
+        """All retries fail, returns error"""
+        mock_usaspending.set_scenario("error_429_always")
+        result = award_search(...)
+        assert result["error"]["type"] == "rate_limit"
+
+    def test_retry_on_500(self, mock_usaspending):
+        """Retries on 5xx errors"""
+        mock_usaspending.set_scenario("error_500_then_success")
+        result = award_search(...)
+        assert "results" in result
+
+class TestCircuitBreaker:
+    def test_circuit_opens_after_failures(self, mock_usaspending):
+        """Circuit opens after threshold failures"""
+        mock_usaspending.set_scenario("error_500_always")
+        for _ in range(5):
+            award_search(...)
+        # Next call should fail fast
+        result = award_search(...)
+        assert "circuit breaker" in result["error"]["message"].lower()
+
+    def test_circuit_half_open_recovery(self, mock_usaspending):
+        """Circuit recovers after timeout"""
+        ...
+
+class TestFallbackBehavior:
+    def test_rollup_falls_back_to_search(self, mock_usaspending):
+        """When rollup endpoint fails, falls back to search+aggregate"""
+        mock_usaspending.set_scenario("rollup_error_search_success")
+        result = spending_rollups(...)
+        assert result["meta"]["accuracy_tier"] == "C"
+        assert "approximate" in result["meta"]["warnings"]
+
+    def test_stale_cache_on_upstream_failure(self, mock_usaspending, cache):
+        """Returns stale cached data when upstream fails"""
+        # First call succeeds and caches
+        cache.set("key", data, ttl=3600)
+        mock_usaspending.set_scenario("error_500_always")
+        result = bootstrap_catalog(...)
+        assert result["meta"]["warnings"] == ["stale_cache_used"]
+```
+
+2) Update mock_usaspending to support multi-step scenarios:
+```python
+@app.route("/api/v2/search/spending_by_award/", methods=["POST"])
+def search():
+    scenario = request.args.get("scenario", "success")
+    if scenario == "error_429_then_success":
+        if state.call_count == 0:
+            state.call_count += 1
+            return jsonify({"error": "rate limited"}), 429
+        return jsonify(FIXTURES["search_results"])
+```
+
+Mark tests with @pytest.mark.failure_injection.
+
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+---
+
+PROMPT 34 — Graceful Degradation Strategy
+Implement fallback behaviors when USAspending API is degraded or unavailable.
+
+Requirements:
+1) Add degradation config to router_rules.json:
+```json
+{
+  "degradation": {
+    "allow_stale_cache": true,
+    "stale_cache_max_age_hours": 24,
+    "fallback_to_search_on_rollup_failure": true,
+    "return_partial_on_timeout": true,
+    "maintenance_mode_message": null
+  }
+}
+```
+
+2) Implement in usaspending_client.py:
+```python
+def get_with_fallback(self, cache_key: str, fetch_func, stale_ok: bool = True):
+    """
+    Try to fetch fresh data; fall back to stale cache if allowed.
+    """
+    try:
+        data = fetch_func()
+        self.cache.set(cache_key, data)
+        return data, {"stale": False}
+    except UpstreamError:
+        if stale_ok:
+            stale_data = self.cache.get(cache_key, ignore_ttl=True)
+            if stale_data:
+                return stale_data, {"stale": True, "cached_at": stale_data.cached_at}
+        raise
+```
+
+3) Add `meta.degraded` flag to responses when operating in degraded mode
+4) Add `meta.warnings` entries: "stale_cache_used", "approximate_total", "partial_results"
+
+Add tests for each degradation path.
+
+Run `uv run pytest -q` and fix any failures before proceeding.
+
+---
+
+## APPENDIX C — Cost Estimation
+
+### Cloud Run Costs (Estimated)
+
+**Assumptions:**
+- 1,000 questions/day
+- Average 3 outbound API calls per question
+- P50 latency: 2 seconds
+- Memory: 256MB
+- CPU: 1 vCPU (allocated during request only)
+
+**Monthly Estimate:**
+
+| Component | Calculation | Cost |
+|-----------|-------------|------|
+| CPU | 1000 req × 30 days × 2s × $0.000024/vCPU-s | ~$1.44 |
+| Memory | 1000 req × 30 days × 2s × 256MB × $0.0000025/GB-s | ~$0.38 |
+| Requests | 30,000 requests × $0.40/million | ~$0.01 |
+| Egress | Minimal (JSON responses ~10KB avg) | ~$0.10 |
+| **Total** | | **~$2-5/month** |
+
+**Notes:**
+- Scale-to-zero means no cost when idle
+- Costs increase linearly with traffic
+- At 10,000 questions/day: ~$20-50/month
+- At 100,000 questions/day: ~$200-500/month
+
+**Cost Optimization Tips:**
+1. Maximize cache hit rate (target >50%)
+2. Use rollups instead of search+aggregate when possible
+3. Set appropriate `max_instances` to cap burst costs
+4. Consider committed use discounts for predictable workloads
+
+### USAspending API Costs
+
+**USAspending.gov API is free** - no API key required, no usage fees.
+
+Rate limits apply but are generous for typical usage patterns.
+
+---
+
+## APPENDIX D — File Reference
+
+After completing all prompts, the repository should contain:
+
+```
+.
+├── CLAUDE.md                    # AI assistant guidance
+├── QUICKSTART.md                # 5-minute setup guide
+├── README.md                    # Full documentation
+├── prd.md                       # Product requirements
+├── PromptGuide.txt              # This file
+├── apis.md                      # API endpoint reference
+├── pyproject.toml
+├── Dockerfile
+├── docker-compose.yml
+├── cloudbuild.yaml
+├── Makefile
+├── .env.example
+├── .gitignore
+├── .dockerignore
+├── .gcloudignore
+├── src/
+│   └── usaspending_mcp/
+│       ├── __init__.py
+│       ├── server.py
+│       ├── stdio_server.py
+│       ├── http_app.py
+│       ├── router.py
+│       ├── router_rules.json
+│       ├── usaspending_client.py
+│       ├── cache.py
+│       ├── response.py
+│       ├── award_types.py
+│       ├── endpoint_map.py
+│       ├── logging_config.py
+│       └── tools/
+│           ├── __init__.py
+│           ├── bootstrap_catalog.py
+│           ├── resolve_entities.py
+│           ├── award_search.py
+│           ├── award_explain.py
+│           ├── spending_rollups.py
+│           ├── recipient_profile.py
+│           ├── agency_portfolio.py
+│           ├── idv_vehicle_bundle.py
+│           ├── answer_award_spending_question.py
+│           └── data_freshness.py
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py
+│   ├── test_client.py
+│   ├── test_response.py
+│   ├── test_cache.py
+│   ├── test_award_types.py
+│   ├── test_router.py
+│   ├── test_golden_questions.py
+│   ├── test_success_metrics.py
+│   ├── test_failure_injection.py
+│   └── load/
+│       ├── locustfile.py
+│       └── README.md
+├── mock_usaspending/
+│   ├── app.py
+│   ├── Dockerfile
+│   └── fixtures/
+│       ├── toptier_agencies.json
+│       ├── award_types.json
+│       ├── sample_awards.json
+│       └── ...
+├── scripts/
+│   ├── bootstrap_gcp.sh
+│   ├── deploy_cloud_run.sh
+│   ├── smoke_test_cloud_run.sh
+│   └── get_service_url.sh
+├── docs/
+│   └── runbook.md
+└── examples/
+    ├── bootstrap_catalog_request.json
+    ├── bootstrap_catalog_response.json
+    ├── award_search_request.json
+    ├── award_search_response.json
+    ├── spending_rollups_request.json
+    ├── spending_rollups_response.json
+    ├── answer_question_request.json
+    ├── answer_question_response.json
+    └── error_response.json
+```

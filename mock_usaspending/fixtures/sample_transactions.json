@@ -1,0 +1,113 @@
+{
+  "results": [
+    {
+      "id": "tx-001",
+      "type": "D",
+      "type_description": "Definitive Contract",
+      "action_date": "2024-01-15",
+      "action_type": "A",
+      "action_type_description": "Award",
+      "modification_number": "0",
+      "description": "Initial Award",
+      "federal_action_obligation": 1000000.00,
+      "awarding_agency": {
+        "toptier_agency": {
+          "name": "Department of Defense",
+          "abbreviation": "DOD"
+        },
+        "subtier_agency": {
+          "name": "Department of the Air Force"
+        }
+      },
+      "recipient": {
+        "recipient_name": "BOEING COMPANY",
+        "recipient_unique_id": "123456789"
+      }
+    },
+    {
+      "id": "tx-002",
+      "type": "D",
+      "type_description": "Definitive Contract",
+      "action_date": "2024-02-01",
+      "action_type": "M",
+      "action_type_description": "Modification",
+      "modification_number": "1",
+      "description": "Funding Increase",
+      "federal_action_obligation": 500000.00,
+      "awarding_agency": {
+        "toptier_agency": {
+          "name": "Department of Defense",
+          "abbreviation": "DOD"
+        }
+      },
+      "recipient": {
+        "recipient_name": "BOEING COMPANY"
+      }
+    },
+    {
+      "id": "tx-003",
+      "type": "D",
+      "type_description": "Definitive Contract",
+      "action_date": "2024-03-01",
+      "action_type": "M",
+      "action_type_description": "Modification",
+      "modification_number": "2",
+      "description": "Administrative Change",
+      "federal_action_obligation": 0.00,
+      "awarding_agency": {
+        "toptier_agency": {
+          "name": "Department of Defense",
+          "abbreviation": "DOD"
+        }
+      },
+      "recipient": {
+        "recipient_name": "BOEING COMPANY"
+      }
+    },
+    {
+      "id": "tx-004",
+      "type": "04",
+      "type_description": "Project Grant",
+      "action_date": "2024-01-20",
+      "action_type": "A",
+      "action_type_description": "Award",
+      "modification_number": "0",
+      "description": "Initial Grant",
+      "federal_action_obligation": 200000.00,
+      "awarding_agency": {
+        "toptier_agency": {
+          "name": "National Science Foundation",
+          "abbreviation": "NSF"
+        }
+      },
+      "recipient": {
+        "recipient_name": "UNIVERSITY OF CALIFORNIA"
+      }
+    },
+    {
+      "id": "tx-005",
+      "type": "04",
+      "type_description": "Project Grant",
+      "action_date": "2024-04-01",
+      "action_type": "M",
+      "action_type_description": "Modification",
+      "modification_number": "1",
+      "description": "No-Cost Extension",
+      "federal_action_obligation": 0.00,
+      "awarding_agency": {
+        "toptier_agency": {
+          "name": "National Science Foundation",
+          "abbreviation": "NSF"
+        }
+      },
+      "recipient": {
+        "recipient_name": "UNIVERSITY OF CALIFORNIA"
+      }
+    }
+  ],
+  "page_metadata": {
+    "page": 1,
+    "total": 5,
+    "limit": 10
+  }
+}

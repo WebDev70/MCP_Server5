@@ -1,0 +1,22 @@
+.gcloudignore
+.git
+.gitignore
+.dockerignore
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+tests/
+examples/
+docs/
+.env
+.DS_Store
+.vscode/
+.idea/
+docker-compose.yml
+README.md
+scripts/
+# We need to include src, pyproject.toml, Dockerfile, cloudbuild.yaml (if used implicitly)

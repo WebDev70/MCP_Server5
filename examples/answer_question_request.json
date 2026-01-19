@@ -1,0 +1,12 @@
+{
+  "jsonrpc": "2.0",
+  "id": 5,
+  "method": "tools/call",
+  "params": {
+    "name": "answer_award_spending_question",
+    "arguments": {
+      "question": "How much did DHS obligate on grants last quarter?",
+      "debug": false
+    }
+  }
+}

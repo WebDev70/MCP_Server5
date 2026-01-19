@@ -1,0 +1,48 @@
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "result": {
+    "tool_version": "1.0",
+    "totals": {
+      "obligations": 485000000000.00,
+      "award_count": 125000
+    },
+    "groups": [
+      {
+        "recipient_id": "abc123-def456",
+        "recipient_name": "STATE OF CALIFORNIA",
+        "obligations": 52000000000.00,
+        "award_count": 8500,
+        "percentage": 10.72
+      },
+      {
+        "recipient_id": "ghi789-jkl012",
+        "recipient_name": "STATE OF NEW YORK",
+        "obligations": 48000000000.00,
+        "award_count": 7200,
+        "percentage": 9.90
+      },
+      {
+        "recipient_id": "mno345-pqr678",
+        "recipient_name": "STATE OF TEXAS",
+        "obligations": 42000000000.00,
+        "award_count": 6800,
+        "percentage": 8.66
+      }
+    ],
+    "meta": {
+      "request_id": "550e8400-e29b-41d4-a716-446655440002",
+      "scope_mode": "assistance_only",
+      "award_type_groups_applied": ["02", "03", "04", "05", "06", "07", "08", "09", "10", "11"],
+      "time_period": {
+        "start_date": "2023-10-01",
+        "end_date": "2024-09-30"
+      },
+      "endpoint_used": "/api/v2/spending/",
+      "accuracy_tier": "A",
+      "total_groups": 45000,
+      "truncated": false,
+      "warnings": []
+    }
+  }
+}

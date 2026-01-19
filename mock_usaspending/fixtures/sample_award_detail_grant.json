@@ -1,0 +1,46 @@
+{
+  "id": 67890,
+  "type": "04",
+  "category": "grant",
+  "type_description": "Project Grant",
+  "fain": "GRANT_AWD_0001",
+  "description": "Climate Change Research Initiative",
+  "total_obligation": 200000.00,
+  "total_outlay": 50000.00,
+  "date_signed": "2024-01-20",
+  "period_of_performance_start_date": "2024-01-20",
+  "period_of_performance_current_end_date": "2025-01-19",
+  "awarding_agency": {
+    "toptier_agency": {
+      "name": "National Science Foundation",
+      "abbreviation": "NSF",
+      "code": "049"
+    },
+    "subtier_agency": {
+      "name": "National Science Foundation",
+      "abbreviation": "NSF"
+    }
+  },
+  "recipient": {
+    "recipient_name": "UNIVERSITY OF CALIFORNIA",
+    "recipient_unique_id": "987654321",
+    "recipient_hash": "hash-uc-987"
+  },
+  "place_of_performance": {
+    "city_name": "Berkeley",
+    "state_code": "CA",
+    "country_code": "USA"
+  },
+  "cfda_info": [
+    {
+      "applicant_eligibility": "Public/State Controlled Institution of Higher Education",
+      "beneficiary_eligibility": "General Public",
+      "cfda_number": "47.050",
+      "cfda_title": "Geosciences",
+      "federal_agency": "National Science Foundation",
+      "objectives": "To support research in the atmospheric, earth, and ocean sciences.",
+      "obligations": "200000.00",
+      "website": "https://www.nsf.gov/div/index.jsp?div=GEO"
+    }
+  ]
+}

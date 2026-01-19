@@ -1,0 +1,111 @@
+{
+  "version": "1.0",
+  "circuit_breaker": {
+    "failure_threshold": 5,
+    "recovery_timeout_seconds": 60,
+    "half_open_requests": 2
+  },
+  "design_decisions": {
+    "ambiguous_scope_default": "all_awards",
+    "ambiguous_scope_behavior": "infer_not_ask",
+    "default_metric": "obligations",
+    "metric_by_award_type": {
+      "contracts": "obligations",
+      "grants": "obligations",
+      "loans": "face_value_of_loan",
+      "direct_payments": "obligations",
+      "other": "obligations"
+    },
+    "agency_default": "awarding_agency",
+    "agency_inference_keywords": {
+      "funded by": "funding_agency",
+      "funding agency": "funding_agency",
+      "received from": "funding_agency"
+    },
+    "award_category_normalization": {
+      "output_field": "award_category",
+      "values": ["contract", "idv", "grant", "loan", "direct_payment", "other_assistance"]
+    },
+    "scope_mode_control": "both",
+    "scope_mode_param_name": "scope_mode",
+    "scope_mode_inference_default": true
+  },
+  "budgets": {
+    "max_tool_calls_per_question": 3,
+    "max_usaspending_requests": 5,
+    "max_wall_ms": 12000,
+    "max_response_bytes": 200000,
+    "max_items_per_list": 200
+  },
+  "caching_ttl_seconds": {
+    "references": 86400,
+    "entity_resolution": 3600,
+    "rollups": 1800,
+    "award_summary": 21600,
+    "award_details": 10800
+  },
+  "defaults": {
+    "scope_mode_default": "all_awards",
+    "award_search": {
+      "limit_default": 50,
+      "limit_max": 200,
+      "fields_profile": "thin"
+    },
+    "spending_rollups": {
+      "top_n_default": 10,
+      "top_n_max": 25
+    },
+    "output_policy": {
+      "summary_first": true,
+      "require_award_id_for_explain": true
+    }
+  },
+  "routes": [
+    {
+      "name": "spending_rollups",
+      "tool": "spending_rollups",
+      "cost_hint": 1,
+      "preconditions": ["intent_total_or_top_n"]
+    },
+    {
+      "name": "idv_vehicle_bundle",
+      "tool": "idv_vehicle_bundle",
+      "cost_hint": 3,
+      "preconditions": ["intent_idv", "has_award_id"],
+      "deny_if": ["scope_assistance_only"]
+    },
+    {
+      "name": "award_explain",
+      "tool": "award_explain",
+      "cost_hint": 2,
+      "preconditions": ["has_award_id"]
+    },
+    {
+      "name": "agency_portfolio",
+      "tool": "agency_portfolio",
+      "cost_hint": 2,
+      "preconditions": ["intent_agency_portfolio", "has_agency_id"]
+    },
+    {
+      "name": "recipient_profile",
+      "tool": "recipient_profile",
+      "cost_hint": 2,
+      "preconditions": ["intent_recipient_profile", "has_recipient"]
+    },
+    {
+      "name": "resolve_entities",
+      "tool": "resolve_entities",
+      "cost_hint": 1,
+      "preconditions": ["intent_resolve"]
+    },
+    {
+      "name": "award_search",
+      "tool": "award_search",
+      "cost_hint": 1,
+      "preconditions": []
+    }
+  ],
+  "fallbacks": {
+    "spending_rollups": "award_search"
+  }
+}

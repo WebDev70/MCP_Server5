@@ -1,0 +1,128 @@
+steps:
+  # 1. Lint and Test (Fail Fast)
+  - name: 'ghcr.io/astral-sh/uv:latest'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        uv sync
+        echo "Running Ruff..."
+        uv run ruff check .
+        uv run ruff format --check .
+        echo "Running Unit Tests with Coverage..."
+        uv run pytest -q -m "not integration"
+    id: 'lint-and-unit-tests'
+
+  # 2. Security Scans (Optional)
+  - name: 'python:3.12-slim'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ "$_SECURITY_SCAN" = "true" ]; then
+          echo "Running pip-audit..."
+          pip install pip-audit
+          pip-audit
+        else
+          echo "Skipping pip-audit"
+        fi
+    id: 'scan-deps'
+
+  - name: 'zricethezav/gitleaks:latest'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ "$_SECURITY_SCAN" = "true" ]; then
+          echo "Running gitleaks..."
+          gitleaks detect --source=. --verbose --redact
+        else
+          echo "Skipping gitleaks"
+        fi
+    id: 'scan-secrets'
+
+  # 3. Build App Image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '-t', '$_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO/$_SERVICE_NAME:$COMMIT_SHA',
+      '-t', '$_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO/$_SERVICE_NAME:latest',
+      '.'
+    ]
+    id: 'build-image'
+
+  # 4. Image Scan (Optional)
+  - name: 'aquasec/trivy:latest'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        if [ "$_SECURITY_SCAN" = "true" ]; then
+          echo "Running Trivy..."
+          trivy image --exit-code 1 --severity HIGH,CRITICAL $_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO/$_SERVICE_NAME:$COMMIT_SHA
+        else
+          echo "Skipping Trivy scan"
+        fi
+    id: 'scan-image'
+    waitFor: ['build-image']
+
+  # 5. Integration Tests (Deterministic)
+  # Note: Currently relying on in-process respx mocks. 
+  # To enable full container-based integration tests:
+  # 1. Build/Pull mock-usaspending image
+  # 2. Run mock-usaspending
+  # 3. Run app container pointing to mock
+  # 4. Run black-box tests
+  # For now, we run the integration suite using the source code which uses robust respx mocks.
+  - name: 'ghcr.io/astral-sh/uv:latest'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        uv sync
+        uv run pytest -q -m "integration"
+    id: 'integration-tests'
+
+  # 4. Push Image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'push',
+      '$_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO/$_SERVICE_NAME:$COMMIT_SHA'
+    ]
+    id: 'push-image'
+
+  # 5. Push Latest Tag (Optional)
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'push',
+      '$_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO/$_SERVICE_NAME:latest'
+    ]
+    id: 'push-latest'
+
+  # 6. Deploy to Cloud Run (Optional)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ "$_DEPLOY" = "true" ]; then
+          ./scripts/deploy_cloud_run.sh
+        else
+          echo "Skipping deployment (set _DEPLOY=true to enable)"
+        fi
+    env:
+      - 'PROJECT_ID=$PROJECT_ID'
+      - 'REGION=$_REGION'
+      - 'SERVICE_NAME=$_SERVICE_NAME'
+      - 'IMAGE=$_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO/$_SERVICE_NAME:$COMMIT_SHA'
+    id: 'deploy'
+
+substitutions:
+  _REGION: 'us-central1'
+  _SERVICE_NAME: 'usaspending-mcp'
+  _AR_REPO: 'usaspending-mcp'
+  _DEPLOY: 'false'
+  _SECURITY_SCAN: 'false'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

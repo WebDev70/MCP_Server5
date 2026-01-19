@@ -1,0 +1,29 @@
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "tools/call",
+  "params": {
+    "name": "award_search",
+    "arguments": {
+      "time_period": {
+        "fy": "2024"
+      },
+      "filters": {
+        "agencies": [
+          {
+            "type": "awarding",
+            "tier": "toptier",
+            "toptier_code": "097"
+          }
+        ]
+      },
+      "fields": ["award_id", "recipient_name", "total_obligation", "award_type"],
+      "sort": "total_obligation",
+      "order": "desc",
+      "limit": 10,
+      "mode": "list",
+      "scope_mode": "contracts_only",
+      "debug": false
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "result": {
+    "tool_version": "1.0",
+    "error": {
+      "type": "validation",
+      "message": "Invalid time_period format. Expected object with 'fy' or 'start_date'/'end_date'.",
+      "status_code": 400,
+      "endpoint": "/api/v2/search/spending_by_award/",
+      "remediation_hint": "Use format: {'start_date': 'YYYY-MM-DD', 'end_date': 'YYYY-MM-DD'} or {'fy': '2024'}"
+    },
+    "meta": {
+      "request_id": "550e8400-e29b-41d4-a716-446655440003",
+      "scope_mode": "all_awards",
+      "warnings": []
+    }
+  }
+}

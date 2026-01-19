@@ -1,0 +1,55 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "tool_version": "1.0",
+    "catalog": {
+      "toptier_agencies": [
+        {
+          "toptier_code": "097",
+          "abbreviation": "DOD",
+          "name": "Department of Defense"
+        },
+        {
+          "toptier_code": "075",
+          "abbreviation": "HHS",
+          "name": "Department of Health and Human Services"
+        },
+        {
+          "toptier_code": "070",
+          "abbreviation": "DHS",
+          "name": "Department of Homeland Security"
+        }
+      ],
+      "award_types": {
+        "contracts": ["A", "B", "C", "D"],
+        "idvs": ["IDV_A", "IDV_B", "IDV_C", "IDV_D", "IDV_E"],
+        "grants": ["02", "03", "04", "05"],
+        "direct_payments": ["06", "10"],
+        "loans": ["07", "08"],
+        "other": ["09", "11"]
+      },
+      "assistance_listing": [
+        {
+          "cfda_number": "20.205",
+          "program_title": "Highway Planning and Construction"
+        },
+        {
+          "cfda_number": "93.778",
+          "program_title": "Medical Assistance Program"
+        }
+      ]
+    },
+    "meta": {
+      "request_id": "550e8400-e29b-41d4-a716-446655440000",
+      "scope_mode": "all_awards",
+      "endpoints_used": [
+        "/api/v2/references/toptier_agencies/",
+        "/api/v2/references/award_types/",
+        "/api/v2/references/assistance_listing/"
+      ],
+      "cache_hit": false,
+      "warnings": []
+    }
+  }
+}

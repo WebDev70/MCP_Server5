@@ -1,0 +1,27 @@
+# Ignore everything initially
+# *
+
+# Allow needed files (Allowlisting is safer but standard is denylisting for Docker usually)
+# We will use denylist based on prompt.
+
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+.git/
+.github/
+dist/
+build/
+tests/
+examples/
+docs/
+.env
+.DS_Store
+.vscode/
+.idea/
+cloudbuild.yaml
+scripts/
+docker-compose.yml

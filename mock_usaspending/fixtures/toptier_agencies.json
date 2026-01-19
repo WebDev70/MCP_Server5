@@ -1,0 +1,79 @@
+{
+  "results": [
+    {
+      "agency_id": 1,
+      "toptier_code": "097",
+      "abbreviation": "DOD",
+      "agency_name": "Department of Defense",
+      "congressional_justification_url": "https://comptroller.defense.gov/Budget-Materials/",
+      "active_fy": "2024",
+      "active_fq": "4",
+      "outlay_amount": 1200000000.00,
+      "obligated_amount": 1500000000.00,
+      "budget_authority_amount": 1600000000.00,
+      "current_total_budget_authority_amount": 1700000000.00,
+      "percentage_of_total_budget_authority": 45.0,
+      "agency_slug": "department-of-defense"
+    },
+    {
+      "agency_id": 2,
+      "toptier_code": "075",
+      "abbreviation": "HHS",
+      "agency_name": "Department of Health and Human Services",
+      "congressional_justification_url": "https://www.hhs.gov/about/budget/index.html",
+      "active_fy": "2024",
+      "active_fq": "4",
+      "outlay_amount": 900000000.00,
+      "obligated_amount": 950000000.00,
+      "budget_authority_amount": 1000000000.00,
+      "current_total_budget_authority_amount": 1100000000.00,
+      "percentage_of_total_budget_authority": 30.0,
+      "agency_slug": "department-of-health-and-human-services"
+    },
+    {
+      "agency_id": 3,
+      "toptier_code": "070",
+      "abbreviation": "DHS",
+      "agency_name": "Department of Homeland Security",
+      "congressional_justification_url": "https://www.dhs.gov/performance-financial-reports",
+      "active_fy": "2024",
+      "active_fq": "4",
+      "outlay_amount": 200000000.00,
+      "obligated_amount": 250000000.00,
+      "budget_authority_amount": 260000000.00,
+      "current_total_budget_authority_amount": 270000000.00,
+      "percentage_of_total_budget_authority": 10.0,
+      "agency_slug": "department-of-homeland-security"
+    },
+    {
+      "agency_id": 4,
+      "toptier_code": "080",
+      "abbreviation": "NASA",
+      "agency_name": "National Aeronautics and Space Administration",
+      "congressional_justification_url": "https://www.nasa.gov/news/budget/",
+      "active_fy": "2024",
+      "active_fq": "4",
+      "outlay_amount": 100000000.00,
+      "obligated_amount": 110000000.00,
+      "budget_authority_amount": 120000000.00,
+      "current_total_budget_authority_amount": 125000000.00,
+      "percentage_of_total_budget_authority": 5.0,
+      "agency_slug": "national-aeronautics-and-space-administration"
+    },
+    {
+      "agency_id": 5,
+      "toptier_code": "012",
+      "abbreviation": "USDA",
+      "agency_name": "Department of Agriculture",
+      "congressional_justification_url": "https://www.usda.gov/budget",
+      "active_fy": "2024",
+      "active_fq": "4",
+      "outlay_amount": 150000000.00,
+      "obligated_amount": 160000000.00,
+      "budget_authority_amount": 170000000.00,
+      "current_total_budget_authority_amount": 180000000.00,
+      "percentage_of_total_budget_authority": 6.0,
+      "agency_slug": "department-of-agriculture"
+    }
+  ]
+}

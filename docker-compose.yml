@@ -1,0 +1,65 @@
+services:
+  # ==========================================
+  # PROFILE: DEV
+  # Runs against real USAspending API
+  # ==========================================
+  app:
+    profiles: ["dev"]
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - USASPENDING_BASE_URL=https://api.usaspending.gov/api/v2
+      - LOG_LEVEL=debug
+      - FASTMCP_STATELESS_HTTP=true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ==========================================
+  # PROFILE: TEST
+  # Runs against Mock API + Integration Tests
+  # ==========================================
+  mock-usaspending:
+    profiles: ["test"]
+    build: ./mock_usaspending
+    ports:
+      - "8081:8081"
+    # volumes:
+    #   - ./mock_usaspending:/app
+
+  app-test:
+    profiles: ["test"]
+    build: .
+    ports:
+      - "18080:8080"
+    environment:
+      - PORT=8080
+      - USASPENDING_BASE_URL=http://mock-usaspending:8080/api/v2
+      - LOG_LEVEL=info
+      - FASTMCP_STATELESS_HTTP=true
+    depends_on:
+      - mock-usaspending
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/readyz')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  tests:
+    profiles: ["test"]
+    image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      - USASPENDING_BASE_URL=http://mock-usaspending:8080/api/v2
+    command: sh -c "uv sync && uv run pytest -m integration"
+    depends_on:
+      app-test:
+        condition: service_healthy

@@ -1,0 +1,46 @@
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "tool_version": "1.0",
+    "results": [
+      {
+        "award_id": "CONT_AWD_0001_9700_SPE4A620D0001_9700",
+        "recipient_name": "LOCKHEED MARTIN CORPORATION",
+        "total_obligation": 2500000000.00,
+        "award_type": "D",
+        "award_category": "contract"
+      },
+      {
+        "award_id": "CONT_AWD_0002_9700_FA862520C0001_9700",
+        "recipient_name": "BOEING COMPANY, THE",
+        "total_obligation": 1800000000.00,
+        "award_type": "D",
+        "award_category": "contract"
+      },
+      {
+        "award_id": "CONT_AWD_0003_9700_W91238-20-D-0001_9700",
+        "recipient_name": "RAYTHEON COMPANY",
+        "total_obligation": 1200000000.00,
+        "award_type": "C",
+        "award_category": "contract"
+      }
+    ],
+    "count": 15432,
+    "page": 1,
+    "limit": 10,
+    "has_more": true,
+    "meta": {
+      "request_id": "550e8400-e29b-41d4-a716-446655440001",
+      "scope_mode": "contracts_only",
+      "award_type_groups_applied": ["A", "B", "C", "D"],
+      "time_period": {
+        "fy": "2024"
+      },
+      "endpoint_used": "/api/v2/search/spending_by_award/",
+      "accuracy_tier": "B",
+      "truncated": false,
+      "warnings": []
+    }
+  }
+}

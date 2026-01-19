@@ -1,0 +1,32 @@
+{
+  "recipient_id": "123456789-hash",
+  "recipient_name": "BOEING COMPANY",
+  "recipient_level": "P",
+  "recipient_unique_id": "123456789",
+  "ueı": "UEI123456789",
+  "parent_id": "987654321-hash",
+  "parent_name": "THE BOEING COMPANY",
+  "parent_unique_id": "987654321",
+  "parent_uei": "UEI987654321",
+  "business_types": [
+    "UN",
+    "VN"
+  ],
+  "location": {
+    "address_line1": "100 Riverside",
+    "address_line2": null,
+    "address_line3": null,
+    "foreign_province": null,
+    "city_name": "Chicago",
+    "county_name": "Cook",
+    "state_code": "IL",
+    "zip": "60606",
+    "zip4": null,
+    "foreign_postal_code": null,
+    "country_name": "UNITED STATES",
+    "country_code": "USA",
+    "congressional_district": "07"
+  },
+  "total_transaction_amount": 5000000000.00,
+  "total_transactions": 1500
+}

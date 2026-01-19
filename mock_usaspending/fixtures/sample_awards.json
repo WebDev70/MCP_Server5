@@ -1,0 +1,99 @@
+{
+  "results": [
+    {
+      "Award ID": "CONT_AWD_0001",
+      "Recipient Name": "BOEING COMPANY",
+      "Awarding Agency": "Department of Defense",
+      "Award Amount": 1000000.00,
+      "Action Date": "2024-01-15",
+      "Description": "Aircraft Parts",
+      "Award Type": "Definitive Contract"
+    },
+    {
+      "Award ID": "CONT_AWD_0002",
+      "Recipient Name": "LOCKHEED MARTIN",
+      "Awarding Agency": "Department of Defense",
+      "Award Amount": 2500000.00,
+      "Action Date": "2024-02-20",
+      "Description": "Missile Defense System",
+      "Award Type": "Definitive Contract"
+    },
+    {
+      "Award ID": "CONT_AWD_0003",
+      "Recipient Name": "CACI INC",
+      "Awarding Agency": "Department of Homeland Security",
+      "Award Amount": 500000.00,
+      "Action Date": "2024-03-10",
+      "Description": "IT Support Services",
+      "Award Type": "Delivery Order"
+    },
+    {
+      "Award ID": "CONT_AWD_0004",
+      "Recipient Name": "BOOZ ALLEN HAMILTON",
+      "Awarding Agency": "Department of Justice",
+      "Award Amount": 750000.00,
+      "Action Date": "2024-01-05",
+      "Description": "Consulting Services",
+      "Award Type": "Delivery Order"
+    },
+    {
+      "Award ID": "CONT_AWD_0005",
+      "Recipient Name": "RAYTHEON",
+      "Awarding Agency": "Department of Defense",
+      "Award Amount": 3000000.00,
+      "Action Date": "2024-04-01",
+      "Description": "Radar Systems",
+      "Award Type": "Purchase Order"
+    },
+    {
+      "Award ID": "GRANT_AWD_0001",
+      "Recipient Name": "UNIVERSITY OF CALIFORNIA",
+      "Awarding Agency": "National Science Foundation",
+      "Award Amount": 200000.00,
+      "Action Date": "2024-01-20",
+      "Description": "Climate Change Research",
+      "Award Type": "Project Grant"
+    },
+    {
+      "Award ID": "GRANT_AWD_0002",
+      "Recipient Name": "NEW YORK STATE",
+      "Awarding Agency": "Department of Health and Human Services",
+      "Award Amount": 5000000.00,
+      "Action Date": "2024-02-15",
+      "Description": "Public Health Initiative",
+      "Award Type": "Block Grant"
+    },
+    {
+      "Award ID": "LOAN_AWD_0001",
+      "Recipient Name": "SMALL BUSINESS A",
+      "Awarding Agency": "Small Business Administration",
+      "Award Amount": 150000.00,
+      "Action Date": "2024-03-05",
+      "Description": "Disaster Relief Loan",
+      "Award Type": "Direct Loan"
+    },
+    {
+      "Award ID": "DP_AWD_0001",
+      "Recipient Name": "INDIVIDUAL BENEFICIARY",
+      "Awarding Agency": "Social Security Administration",
+      "Award Amount": 1200.00,
+      "Action Date": "2024-04-10",
+      "Description": "Benefit Payment",
+      "Award Type": "Direct Payment for Specified Use"
+    },
+    {
+      "Award ID": "OTHER_AWD_0001",
+      "Recipient Name": "FARMER X",
+      "Awarding Agency": "Department of Agriculture",
+      "Award Amount": 5000.00,
+      "Action Date": "2024-01-30",
+      "Description": "Crop Insurance Payout",
+      "Award Type": "Insurance"
+    }
+  ],
+  "page_metadata": {
+    "page": 1,
+    "total": 10,
+    "limit": 10
+  }
+}
