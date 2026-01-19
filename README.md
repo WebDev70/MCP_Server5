@@ -42,7 +42,7 @@ docker run -e PORT=8080 -p 8080:8080 usaspending-mcp
 ```
 Test health: `curl http://localhost:8080/healthz`
 
-### 3.a Docker Profiles                                                                    
+### 3.a Docker Profiless                                                                    
 docker compose --profile dev up -d--build                                                
   Or for both profiles: 
   docker compose --profile dev --profile test up -d --build 
