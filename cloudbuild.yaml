@@ -151,8 +151,8 @@ steps:
 
 substitutions:
   _REGION: 'us-central1'
-  _SERVICE_NAME: 'usaspending-mcp'
-  _AR_REPO: 'usaspending-mcp'
+  _SERVICE_NAME: 'MCP5'
+  _AR_REPO: 'mcp5-repo'
   _DEPLOY: 'true'
   _SECURITY_SCAN: 'false'
 
