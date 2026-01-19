@@ -17,7 +17,7 @@ gcloud run deploy "$SERVICE_NAME" \
   --image "$IMAGE" \
   --project "$PROJECT_ID" \
   --region "$REGION" \
-  --no-allow-unauthenticated \
+  --allow-unauthenticated \
   --set-env-vars DEFAULT_SCOPE_MODE=all_awards \
   --set-env-vars USASPENDING_BASE_URL=https://api.usaspending.gov/api/v2 \
   --set-env-vars USASPENDING_TIMEOUT_S=30 \

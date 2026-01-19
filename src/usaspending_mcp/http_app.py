@@ -6,8 +6,6 @@ from fastapi import FastAPI
 
 from usaspending_mcp.server import mcp
 
-app = FastAPI(title="USAspending MCP Server")
-
 # Readiness flag
 is_ready = False
 
@@ -22,7 +20,7 @@ async def lifespan(app: FastAPI):
     # Shutdown logic
     print("Shutting down...")
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(title="USAspending MCP Server", lifespan=lifespan)
 
 @app.get("/healthz")
 async def healthz():
