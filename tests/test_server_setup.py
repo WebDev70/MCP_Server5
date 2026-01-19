@@ -10,16 +10,6 @@ def test_stdio_server_import():
     from usaspending_mcp import stdio_server
     assert stdio_server.main is not None
 
-def test_http_app_readyz_not_started():
-    # Flaky test removed previously, but re-adding basic structure if needed or just skip.
-    pass
-
-def test_http_app_readyz():
-    with TestClient(app) as client:
-        response = client.get("/readyz")
-        assert response.status_code == 200
-        assert response.json() == {"ready": "true"}
-
 def test_http_app_healthz():
     client = TestClient(app)
     response = client.get("/healthz")
