@@ -14,7 +14,7 @@ fi
 echo "Deploying $SERVICE_NAME to Cloud Run in $REGION (Project: $PROJECT_ID)..."
 
 gcloud run deploy "$SERVICE_NAME" \
-  --source . \
+  --image "$IMAGE" \
   --project "$PROJECT_ID" \
   --region "$REGION" \
   --no-allow-unauthenticated \
