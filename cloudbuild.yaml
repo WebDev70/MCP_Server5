@@ -1,10 +1,11 @@
 steps:
   # 1. Lint and Test (Fail Fast)
-  - name: 'ghcr.io/astral-sh/uv:latest'
-    entrypoint: 'sh'
+  - name: 'python:3.12-slim'
+    entrypoint: 'bash'
     args:
       - '-c'
       - |
+        pip install uv
         uv sync
         echo "Running Ruff..."
         uv run ruff check .
@@ -74,11 +75,12 @@ steps:
   # 3. Run app container pointing to mock
   # 4. Run black-box tests
   # For now, we run the integration suite using the source code which uses robust respx mocks.
-  - name: 'ghcr.io/astral-sh/uv:latest'
-    entrypoint: 'sh'
+  - name: 'python:3.12-slim'
+    entrypoint: 'bash'
     args:
       - '-c'
       - |
+        pip install uv
         uv sync
         uv run pytest -q -m "integration"
     id: 'integration-tests'
