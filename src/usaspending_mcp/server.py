@@ -38,7 +38,8 @@ freshness_tool = DataFreshnessTool(client)
 orchestrator_tool = AnswerAwardSpendingQuestionTool(router)
 
 # Initialize FastMCP server
-mcp = FastMCP("USAspending MCP", log_level="DEBUG")
+# stateless_http=True is required for Cloud Run and serverless environments
+mcp = FastMCP("USAspending MCP", log_level="DEBUG", stateless_http=True)
 
 # Register Tools
 @mcp.tool()
