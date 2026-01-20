@@ -40,6 +40,17 @@ async def log_request_info(request: Request, call_next):
 async def healthz():
     return {"status": "ok"}
 
+@app.get("/")
+async def root():
+    return {
+        "status": "online",
+        "service": "USAspending MCP Server",
+        "endpoints": {
+            "health": "/healthz",
+            "mcp": "/mcp"
+        }
+    }
+
 # Mount MCP Streamable HTTP app for HTTP transport
 # This provides /mcp endpoint for ChatGPT and other MCP clients
 # Streamable HTTP is the modern standard (SSE is deprecated)

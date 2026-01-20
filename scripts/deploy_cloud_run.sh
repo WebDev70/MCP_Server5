@@ -17,6 +17,7 @@ gcloud run deploy "$SERVICE_NAME" \
   --image "$IMAGE" \
   --project "$PROJECT_ID" \
   --region "$REGION" \
+  --port 8080 \
   --allow-unauthenticated \
   --set-env-vars DEFAULT_SCOPE_MODE=all_awards \
   --set-env-vars USASPENDING_BASE_URL=https://api.usaspending.gov/api/v2 \

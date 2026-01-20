@@ -138,6 +138,7 @@ steps:
       - '-c'
       - |
         if [ "$_DEPLOY" = "true" ]; then
+          chmod +x ./scripts/deploy_cloud_run.sh
           ./scripts/deploy_cloud_run.sh
         else
           echo "Skipping deployment (set _DEPLOY=true to enable)"
