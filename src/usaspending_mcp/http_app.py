@@ -40,9 +40,10 @@ async def log_request_info(request: Request, call_next):
 async def healthz():
     return {"status": "ok"}
 
-# Mount MCP SSE app for HTTP transport
-# This provides /mcp/sse and /mcp/messages endpoints
-mcp_app = mcp.sse_app()
+# Mount MCP Streamable HTTP app for HTTP transport
+# This provides /mcp endpoint for ChatGPT and other MCP clients
+# Streamable HTTP is the modern standard (SSE is deprecated)
+mcp_app = mcp.streamable_http_app()
 app.mount("/mcp", mcp_app)
 
 def main():
