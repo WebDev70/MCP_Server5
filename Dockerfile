@@ -20,7 +20,7 @@ COPY src/ src/
 
 # Install dependencies
 # Using system python environment in container for simplicity with cloud run
-RUN uv pip install --system -e .
+RUN uv pip install --system .
 
 # Create a non-root user (optional but good practice)
 # RUN useradd -m appuser && chown -R appuser /app
