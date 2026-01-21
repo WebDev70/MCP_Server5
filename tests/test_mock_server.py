@@ -1,6 +1,7 @@
-import pytest
 from fastapi.testclient import TestClient
+
 from mock_usaspending.app import app
+
 
 def test_mock_toptier_agencies():
     with TestClient(app) as client:

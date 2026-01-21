@@ -1,15 +1,18 @@
-import pytest
 from unittest.mock import MagicMock
-from usaspending_mcp.router import Router
-from usaspending_mcp.tools.answer_award_spending_question import AnswerAwardSpendingQuestionTool
+
+import pytest
+
 from usaspending_mcp.award_types import (
     SCOPE_ALL_AWARDS,
     SCOPE_CONTRACTS_ONLY,
+    SCOPE_DIRECT_PAYMENTS_ONLY,
     SCOPE_GRANTS_ONLY,
     SCOPE_IDVS_ONLY,
     SCOPE_LOANS_ONLY,
-    SCOPE_DIRECT_PAYMENTS_ONLY,
 )
+from usaspending_mcp.router import Router
+from usaspending_mcp.tools.answer_award_spending_question import AnswerAwardSpendingQuestionTool
+
 
 @pytest.fixture
 def orchestrator():

@@ -1,5 +1,7 @@
 import pytest
-from usaspending_mcp.endpoint_map import get_endpoints_for_tool, get_cost_hint, ENDPOINT_MAP
+
+from usaspending_mcp.endpoint_map import ENDPOINT_MAP, get_cost_hint, get_endpoints_for_tool
+
 
 @pytest.mark.unit
 def test_all_tools_mapped():

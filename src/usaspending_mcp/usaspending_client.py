@@ -1,18 +1,14 @@
+import json
+import logging
 import os
 import time
 import uuid
-import json
-import logging
+from typing import Any, Callable, Dict, Optional, Union
+
 import httpx
-from typing import Optional, Dict, Any, Union, Callable
-from usaspending_mcp.logging_config import get_logger, log_context
-from tenacity import (
-    Retrying,
-    stop_after_attempt,
-    wait_exponential,
-    retry_if_exception_type,
-    before_sleep_log
-)
+from tenacity import Retrying, before_sleep_log, retry_if_exception_type, stop_after_attempt, wait_exponential
+
+from usaspending_mcp.logging_config import get_logger
 
 logger = get_logger("usaspending_client")
 

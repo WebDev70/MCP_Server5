@@ -1,8 +1,10 @@
+import httpx
 import pytest
 import respx
-import httpx
-from usaspending_mcp.usaspending_client import USAspendingClient
+
 from usaspending_mcp.tools.data_freshness import DataFreshnessTool
+from usaspending_mcp.usaspending_client import USAspendingClient
+
 
 @pytest.fixture
 def tool():

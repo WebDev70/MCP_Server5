@@ -1,11 +1,12 @@
-import os
-import uvicorn
 import logging
-from starlette.middleware import Middleware
+import os
+
+import uvicorn
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import JSONResponse
-from starlette.routing import Route, Mount
+from starlette.routing import Route
+
 from usaspending_mcp.server import mcp
 
 # Initialize logger
@@ -18,12 +19,11 @@ async def root(request):
     return JSONResponse({
         "status": "online",
         "service": "USAspending MCP Server",
-        "mcp_connection_info": {
-            "sse_url": "/sse",
-            "messages_url": "/messages"
-        },
+        "mcp_endpoint": "/mcp",
+        "protocol": "MCP Streamable HTTP (POST /mcp for requests)",
         "endpoints": {
-            "health": "/healthz"
+            "health": "/healthz",
+            "mcp": "/mcp"
         }
     })
 

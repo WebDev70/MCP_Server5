@@ -1,5 +1,5 @@
 import re
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
 # Scope Modes - API requires codes from ONE group only
 SCOPE_ALL_AWARDS = "all_awards"  # Defaults to contracts

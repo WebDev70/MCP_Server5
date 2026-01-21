@@ -1,8 +1,9 @@
+import io
 import json
 import logging
-import io
-import pytest
-from usaspending_mcp.logging_config import StructuredFormatter, log_context, setup_logging
+
+from usaspending_mcp.logging_config import StructuredFormatter, log_context
+
 
 def test_structured_formatter_output():
     formatter = StructuredFormatter()

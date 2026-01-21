@@ -1,5 +1,5 @@
-import pytest
-from usaspending_mcp.response import ok, fail, out_of_scope, trim_payload, REMEDIATION_HINTS
+from usaspending_mcp.response import REMEDIATION_HINTS, fail, ok, out_of_scope, trim_payload
+
 
 def test_ok_response_structure():
     data = {"results": [1, 2, 3]}

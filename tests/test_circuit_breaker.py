@@ -1,8 +1,11 @@
-import pytest
 import time
-import httpx
 from unittest.mock import MagicMock
+
+import httpx
+import pytest
+
 from usaspending_mcp.usaspending_client import CircuitBreaker, CircuitOpenError
+
 
 def test_circuit_breaker_opens_after_threshold():
     # Threshold 3

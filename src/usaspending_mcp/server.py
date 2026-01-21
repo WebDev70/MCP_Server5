@@ -1,9 +1,11 @@
+import os
 import uuid
+
 from mcp.server.fastmcp import FastMCP
 
 from usaspending_mcp.cache import Cache
+from usaspending_mcp.logging_config import get_logger, log_context, setup_logging
 from usaspending_mcp.router import Router
-from usaspending_mcp.logging_config import log_context, setup_logging, get_logger
 from usaspending_mcp.tools.agency_portfolio import AgencyPortfolioTool
 from usaspending_mcp.tools.answer_award_spending_question import AnswerAwardSpendingQuestionTool
 from usaspending_mcp.tools.award_explain import AwardExplainTool
@@ -38,8 +40,11 @@ freshness_tool = DataFreshnessTool(client)
 orchestrator_tool = AnswerAwardSpendingQuestionTool(router)
 
 # Initialize FastMCP server
-# We use stateless_http=False to enable standard SSE support for Claude Desktop
-mcp = FastMCP("USAspending MCP", log_level="DEBUG", stateless_http=False)
+# stateless_http=True is required for Cloud Run (no persistent SSE connections)
+# stateless_http=False enables SSE support for Claude Desktop local usage
+# Default to True for Cloud Run compatibility; set FASTMCP_STATELESS_HTTP=false for local SSE
+stateless_http = os.getenv("FASTMCP_STATELESS_HTTP", "true").lower() == "true"
+mcp = FastMCP("USAspending MCP", log_level="DEBUG", stateless_http=stateless_http)
 
 # Register Tools
 @mcp.tool()

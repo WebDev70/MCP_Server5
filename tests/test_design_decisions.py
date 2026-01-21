@@ -1,7 +1,10 @@
-import pytest
-from usaspending_mcp.award_types import normalize_award_category
 from unittest.mock import MagicMock
+
+import pytest
+
+from usaspending_mcp.award_types import normalize_award_category
 from usaspending_mcp.router import Router
+
 
 @pytest.fixture
 def router():

@@ -1,17 +1,17 @@
-import pytest
 import json
 import os
 import time
-import respx
+
 import httpx
-import math
-from typing import List, Dict, Any
-from usaspending_mcp.usaspending_client import USAspendingClient
+import pytest
+import respx
+
 from usaspending_mcp.cache import Cache
 from usaspending_mcp.router import Router
 from usaspending_mcp.tools.answer_award_spending_question import AnswerAwardSpendingQuestionTool
 from usaspending_mcp.tools.bootstrap_catalog import BootstrapCatalogTool
 from usaspending_mcp.tools.resolve_entities import ResolveEntitiesTool
+from usaspending_mcp.usaspending_client import USAspendingClient
 
 # Load fixtures
 FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "../mock_usaspending/fixtures")

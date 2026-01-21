@@ -1,8 +1,8 @@
-from fastapi import FastAPI, HTTPException, Request, Response
-from fastapi.responses import JSONResponse
 import json
 import os
-import time
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 
 app = FastAPI(title="Mock USAspending API")
 

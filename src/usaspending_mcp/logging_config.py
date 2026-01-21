@@ -1,10 +1,9 @@
 import json
 import logging
-import uuid
-from datetime import datetime, UTC
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Optional, Dict, Any
+from datetime import UTC, datetime
+from typing import Optional
 
 # Context variables for request tracking
 _request_id_var: ContextVar[Optional[str]] = ContextVar("request_id", default=None)

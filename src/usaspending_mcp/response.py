@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 TOOL_VERSION = "1.0"
 
