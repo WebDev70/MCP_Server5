@@ -25,7 +25,7 @@ gcloud run deploy "$SERVICE_NAME" \
   --set-env-vars USASPENDING_MAX_RETRIES=3 \
   --set-env-vars USASPENDING_BACKOFF_BASE_S=0.5 \
   --set-env-vars LOG_LEVEL=INFO \
-  --set-env-vars FASTMCP_STATELESS_HTTP=true
+  --set-env-vars FASTMCP_STATELESS_HTTP=false
 
 echo "Deployment complete."
 
