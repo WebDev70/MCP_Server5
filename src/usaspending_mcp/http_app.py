@@ -19,11 +19,12 @@ async def root(request):
     return JSONResponse({
         "status": "online",
         "service": "USAspending MCP Server",
-        "mcp_endpoint": "/mcp",
-        "protocol": "MCP Streamable HTTP (POST /mcp for requests)",
+        "mcp_connection_info": {
+            "sse_url": "/sse",
+            "messages_url": "/messages"
+        },
         "endpoints": {
-            "health": "/healthz",
-            "mcp": "/mcp"
+            "health": "/healthz"
         }
     })
 
