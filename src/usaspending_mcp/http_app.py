@@ -3,6 +3,7 @@ import uvicorn
 import logging
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from usaspending_mcp.server import mcp
 
@@ -12,14 +13,15 @@ logger = logging.getLogger("uvicorn.error")
 # Initialize FastAPI with simple setup
 app = FastAPI(title="USAspending MCP Server", redirect_slashes=False)
 
-# Add Trusted Host Middleware - Allow all hosts for Cloud Run
-# This must be added before other middleware
+# Add HTTPS Redirect - Critical for Cloud Run to prevent mixed content/insecure calls
+# Note: In Cloud Run, the termination is at the GFE, but this helps consistent routing
+# Only enable in production if needed, but for now let's use TrustedHost
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["*"],  # Allow all hosts (Cloud Run generates dynamic hostnames)
+    allowed_hosts=["*"],
 )
 
-# Add CORS Middleware - Critical for browser-based clients like ChatGPT
+# Add CORS Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -31,14 +33,21 @@ app.add_middleware(
 @app.middleware("http")
 async def log_request_info(request: Request, call_next):
     logger.info(f"Incoming Request: {request.method} {request.url}")
-    logger.info(f"Query Params: {request.query_params}")
-    logger.info(f"Headers: {request.headers}")
     response = await call_next(request)
     return response
 
 @app.get("/healthz")
 async def healthz():
     return {"status": "ok"}
+
+@app.get("/mcp")
+async def mcp_root_redirect():
+    # If someone hits /mcp, they probably want the SSE endpoint info
+    return {
+        "message": "MCP Server is running",
+        "sse_endpoint": "/mcp/sse",
+        "messages_endpoint": "/mcp/messages"
+    }
 
 @app.get("/")
 async def root():
