@@ -1,57 +1,21 @@
 import os
 import uvicorn
 import logging
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
+from starlette.responses import JSONResponse
+from starlette.routing import Route, Mount
 from usaspending_mcp.server import mcp
 
 # Initialize logger
 logger = logging.getLogger("uvicorn.error")
 
-# Initialize FastAPI with simple setup
-app = FastAPI(title="USAspending MCP Server", redirect_slashes=False)
+async def healthz(request):
+    return JSONResponse({"status": "ok"})
 
-# Add HTTPS Redirect - Critical for Cloud Run to prevent mixed content/insecure calls
-# Note: In Cloud Run, the termination is at the GFE, but this helps consistent routing
-# Only enable in production if needed, but for now let's use TrustedHost
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=["*"],
-)
-
-# Add CORS Middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.middleware("http")
-async def log_request_info(request: Request, call_next):
-    logger.info(f"Incoming Request: {request.method} {request.url}")
-    response = await call_next(request)
-    return response
-
-@app.get("/healthz")
-async def healthz():
-    return {"status": "ok"}
-
-@app.get("/mcp")
-async def mcp_root_redirect():
-    # If someone hits /mcp, they probably want the SSE endpoint info
-    return {
-        "message": "MCP Server is running",
-        "sse_endpoint": "/mcp/sse",
-        "messages_endpoint": "/mcp/messages"
-    }
-
-@app.get("/")
-async def root():
-    return {
+async def root(request):
+    return JSONResponse({
         "status": "online",
         "service": "USAspending MCP Server",
         "mcp_connection_info": {
@@ -61,19 +25,38 @@ async def root():
         "endpoints": {
             "health": "/healthz"
         }
-    }
+    })
 
-# Mount MCP Streamable HTTP app for HTTP transport at the root
-# This ensures /sse and /messages are available directly
-mcp_app = mcp.streamable_http_app()
-app.mount("/", mcp_app)
+# Get the base Starlette app from FastMCP
+# We do this to ensure the Lifecycle logic (TaskGroups) runs as the main app
+app = mcp.streamable_http_app()
 
-@app.on_event("startup")
-async def startup_event():
-    logger.info("Server Starting - Registered Routes:")
-    for route in app.routes:
-        logger.info(f"Route: {route.path} [{route.name}]")
-    logger.info("MCP App mounted at: /")
+# Add our custom routes
+# Note: FastMCP app is a Starlette app, so we can access .routes
+app.routes.append(Route("/healthz", healthz))
+app.routes.append(Route("/", root))
+
+# Add Middleware
+# Note: Starlette middleware is usually added at construction, but we can wrap the app
+# or insert into the middleware stack if we are careful.
+# However, FastMCP might already have middleware.
+# The safest way to add middleware to an existing Starlette app is to wrap it,
+# BUT wrapping it might hide the lifespan.
+# LUCKILY, uvicorn handles the lifespan of the wrapped app if we use Middleware properly.
+
+# Let's inspect if we can add middleware to the app instance directly.
+# Starlette apps allow app.add_middleware()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["*"],
+)
 
 def main():
     """
@@ -83,7 +66,7 @@ def main():
     log_level = os.getenv("LOG_LEVEL", "info")
     print(f"Starting server on port {port} with log level {log_level}...")
     # Using proxy_headers=True for Cloud Run/Load Balancer support
-    uvicorn.run("usaspending_mcp.http_app:app", host="0.0.0.0", port=port, log_level=log_level, proxy_headers=True)
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level=log_level, proxy_headers=True)
 
 if __name__ == "__main__":
     main()
