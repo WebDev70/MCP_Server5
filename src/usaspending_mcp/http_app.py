@@ -10,7 +10,7 @@ from usaspending_mcp.server import mcp
 logger = logging.getLogger("uvicorn.error")
 
 # Initialize FastAPI with simple setup
-app = FastAPI(title="USAspending MCP Server")
+app = FastAPI(title="USAspending MCP Server", redirect_slashes=False)
 
 # Add Trusted Host Middleware - Allow all hosts for Cloud Run
 # This must be added before other middleware
