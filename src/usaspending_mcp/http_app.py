@@ -55,20 +55,25 @@ async def root():
         "status": "online",
         "service": "USAspending MCP Server",
         "mcp_connection_info": {
-            "sse_url": "/mcp/sse",
-            "messages_url": "/mcp/messages"
+            "sse_url": "/sse",
+            "messages_url": "/messages"
         },
         "endpoints": {
-            "health": "/healthz",
-            "mcp_base": "/mcp"
+            "health": "/healthz"
         }
     }
 
-# Mount MCP Streamable HTTP app for HTTP transport
-# This provides /mcp endpoint for ChatGPT and other MCP clients
-# Streamable HTTP is the modern standard (SSE is deprecated)
+# Mount MCP Streamable HTTP app for HTTP transport at the root
+# This ensures /sse and /messages are available directly
 mcp_app = mcp.streamable_http_app()
-app.mount("/mcp", mcp_app)
+app.mount("/", mcp_app)
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Server Starting - Registered Routes:")
+    for route in app.routes:
+        logger.info(f"Route: {route.path} [{route.name}]")
+    logger.info("MCP App mounted at: /")
 
 def main():
     """
