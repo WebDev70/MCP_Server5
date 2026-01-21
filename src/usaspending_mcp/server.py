@@ -38,8 +38,8 @@ freshness_tool = DataFreshnessTool(client)
 orchestrator_tool = AnswerAwardSpendingQuestionTool(router)
 
 # Initialize FastMCP server
-# stateless_http=True is required for Cloud Run and serverless environments
-mcp = FastMCP("USAspending MCP", log_level="DEBUG", stateless_http=True)
+# We use stateless_http=False to enable standard SSE support for Claude Desktop
+mcp = FastMCP("USAspending MCP", log_level="DEBUG", stateless_http=False)
 
 # Register Tools
 @mcp.tool()
