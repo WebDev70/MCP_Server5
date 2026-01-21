@@ -45,9 +45,13 @@ async def root():
     return {
         "status": "online",
         "service": "USAspending MCP Server",
+        "mcp_connection_info": {
+            "sse_url": "/mcp/sse",
+            "messages_url": "/mcp/messages"
+        },
         "endpoints": {
             "health": "/healthz",
-            "mcp": "/mcp"
+            "mcp_base": "/mcp"
         }
     }
 
