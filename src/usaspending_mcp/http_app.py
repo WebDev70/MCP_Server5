@@ -14,6 +14,11 @@ from usaspending_mcp.server import mcp
 # Initialize logger
 logger = logging.getLogger("uvicorn.error")
 
+# Mount MCP Streamable HTTP app for HTTP transport
+# We must instantiate this ONCE and use the same instance in lifespan and mount
+# to ensure the lifecycle hooks apply to the actual running app.
+mcp_app = mcp.streamable_http_app()
+
 # -----------------------------------------------------------------------------
 # LIFECYCLE MANAGEMENT
 # -----------------------------------------------------------------------------
@@ -22,11 +27,8 @@ logger = logging.getLogger("uvicorn.error")
 # This initializes the 'TaskGroup' that caused the 500 crashes.
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Get the underlying Starlette app from FastMCP
-    mcp_starlette_app = mcp.streamable_http_app()
-    
-    # Trigger its startup logic
-    async with mcp_starlette_app.router.lifespan_context(mcp_starlette_app):
+    # Trigger the startup logic of the SPECIFIC instance we mounted
+    async with mcp_app.router.lifespan_context(mcp_app):
         logger.info("FastMCP Internal Server Started")
         yield
         logger.info("FastMCP Internal Server Stopped")
@@ -76,10 +78,7 @@ async def root():
         "note": "FastMCP uses a single endpoint '/mcp' for both SSE (GET) and Messages (POST)."
     }
 
-# Mount the MCP app
-# We mount it at root "/" so that "/mcp" is accessible directly.
-# Using 'app.mount' with the lifespan wrapper above ensures safety.
-mcp_app = mcp.streamable_http_app()
+# Mount the MCP app instance we created above
 app.mount("/", mcp_app)
 
 def main():
