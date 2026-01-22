@@ -1,9 +1,9 @@
-# USAspending MCP Server 5
+# USAspending MCP 5 Server
 
 A Model Context Protocol (MCP) server for USAspending.gov, enabling LLMs to answer federal award spending questions accurately.
 
 ## Setup
-
+ 
 1.  Install `uv`:
     ```bash
     pip install uv
