@@ -20,8 +20,8 @@ async def root(request):
         "status": "online",
         "service": "USAspending MCP Server",
         "mcp_connection_info": {
-            "sse_url": "/sse",
-            "messages_url": "/messages"
+            "sse_url": "/mcp",
+            "messages_url": "/mcp"
         },
         "endpoints": {
             "health": "/healthz"
