@@ -27,8 +27,9 @@ mcp_app = mcp.streamable_http_app()
 # This initializes the 'TaskGroup' that caused the 500 crashes.
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Trigger the startup logic of the SPECIFIC instance we mounted
-    async with mcp_app.router.lifespan_context(mcp_app):
+    # According to the official docs/patterns, we should run the session manager directly
+    # Note: mcp.session_manager is only available AFTER streamable_http_app() is called
+    async with mcp.session_manager.run():
         logger.info("FastMCP Internal Server Started")
         yield
         logger.info("FastMCP Internal Server Stopped")
