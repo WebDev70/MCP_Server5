@@ -119,6 +119,6 @@ Test the orchestrator with a natural language question:
 
 ## Next Steps
 
-1. Read `prd.md` for requirements and success metrics.
-2. Follow `PromptGuide.txt` for development history.
+1. Read `docs/prd.md` for requirements and success metrics.
+2. Follow `docs/PromptGuide.txt` for development history.
 3. See `docs/runbook.md` for operational details.

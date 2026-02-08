@@ -1,101 +1,85 @@
-# USAspending MCP 5 Server 555555555
+# USAspending MCP Server
 
-A Model Context Protocol (MCP) server for USAspending.gov, enabling LLMs to answer federal award spending questions accurately.
+A Model Context Protocol (MCP) server that enables Large Language Models (LLMs) to query and analyze federal award spending data from USAspending.gov.
+
+This server acts as a middleware, translating natural language questions into efficient API queries to retrieve data on contracts, grants, loans, and other financial assistance.
+
+## Key Features
+
+- **Model Context Protocol Support:** Compatible with any MCP-enabled client (e.g., Claude Desktop, Gemini).
+- **Intelligent Routing:** Automatically selects the most efficient USAspending.gov API endpoints.
+- **Entity Resolution:** Resolves natural language names for agencies and recipients to canonical IDs.
+- **Smart Caching:** Multi-tier in-memory caching for performance and API rate-limit protection.
+- **Comprehensive Coverage:** Supports the full "all-awards" scope (Contracts, IDVs, Grants, Loans, Direct Payments).
+
+## Core Tools
+
+- **`answer_award_spending_question`**: Orchestrator for natural language Q&A.
+- **`spending_rollups`**: Aggregated spending totals and "Top N" breakdowns.
+- **`award_search`**: Detailed search for individual awards with filtering.
+- **`award_explain`**: Deep dive into a specific award, its transactions, and subawards.
+- **`agency_portfolio`**: Overview of an agency's spending and top recipients.
+- **`recipient_profile`**: Summary of a recipient's federal award history.
+- **`idv_vehicle_bundle`**: Specialized tracking for Indefinite Delivery Vehicles (IDVs).
+- **`resolve_entities`**: Map names to IDs for Agencies and Recipients.
 
 ## Setup
- 
-1.  Install `uv`:
+
+The project uses `uv` for Python package management.
+
+1.  **Install `uv`**:
     ```bash
-    pip install uv
+    curl -LsSf https://astral.sh/uv/install.sh | sh
     ```
 
-2.  Sync dependencies:
+2.  **Sync Dependencies**:
     ```bash
     uv sync
     ```
 
-## Quick Start (Makefile)
+3.  **Configure Environment**:
+    ```bash
+    cp .env.example .env
+    ```
 
-- **Unit Tests:** `make unit`
-- **Integration Tests:** `make integration` (requires Docker)
-- **Lint:** `make lint`
-- **Build:** `make build`
-- **Run HTTP:** `make run-http`
-- **Run StdIO:** `make run-stdio`
+## Usage
 
-## Manual Running
-
-### 1. Local Run (FastAPI/HTTP)
+### Local Development (stdio)
+Recommended for use with Claude Desktop or other local MCP clients.
 ```bash
-PYTHONPATH=src uv run uvicorn usaspending_mcp.http_app:app --host 0.0.0.0 --port 8080
+make run-stdio
 ```
 
-### 2. Local StdIO (for Claude Desktop)
+### Local HTTP Server
+Starts a FastAPI server with an MCP endpoint at `/mcp`.
 ```bash
-PYTHONPATH=src uv run python -m usaspending_mcp.stdio_server
+make run-http
 ```
 
-### 3. Docker Run
-```bash
-docker build -t usaspending-mcp .
-docker run -e PORT=8080 -p 8080:8080 usaspending-mcp
-```
-Test health: `curl http://localhost:8080/healthz`
+### Testing
+- **Unit Tests**: `make unit`
+- **Integration Tests**: `make integration` (requires Docker)
+- **Linting**: `make lint`
 
-### 3.a Docker Profiles                                                                    
-docker compose --profile dev up -d--build                                                
-  Or for both profiles: 
-  docker compose --profile dev --profile test up -d --build 
+## Deployment
 
-## Cloud Run Deployment
+The server is designed to run on **Google Cloud Run**.
 
-### 0. Infrastructure Setup (One-time)
-Bootstrap minimal GCP resources (APIs, Repo, Service Accounts) with least privileges:
-```bash
-PROJECT_ID=your-project REGION=us-central1 ./scripts/bootstrap_gcp.sh
-```
+1.  **Bootstrap Infrastructure**:
+    ```bash
+    ./scripts/bootstrap_gcp.sh
+    ```
+2.  **Deploy**:
+    ```bash
+    ./scripts/deploy_cloud_run.sh
+    ```
 
-### 1. Deploy Private
-```bash
-PROJECT_ID=your-project REGION=us-central1 ./scripts/deploy_cloud_run.sh
-```
+For detailed deployment and operations guidance, see [docs/runbook.md](docs/runbook.md).
 
-### 2. Grant Invoker Permissions
-```bash
-gcloud run services add-iam-policy-binding usaspending-mcp \
-  --member="user:YOUR_EMAIL" \
-  --role="roles/run.invoker" \
-  --region us-central1 --project your-project
-```
+## Documentation
 
-### 3. Call with Identity Token
-```bash
-SERVICE_URL=$(./scripts/get_service_url.sh)
-TOKEN=$(gcloud auth print-identity-token)
-curl -H "Authorization: Bearer $TOKEN" $SERVICE_URL/healthz
-```
-
-## CI/CD and Security
-
-The `cloudbuild.yaml` supports optional security scanning. To enable:
-
-```bash
-gcloud builds submit --config cloudbuild.yaml --substitutions=_SECURITY_SCAN=true
-```
-
-Checks included:
-- **pip-audit**: Scans dependencies for known vulnerabilities.
-- **gitleaks**: Scans source for secrets.
-- **trivy**: Scans the built container image for OS/package vulnerabilities.
-
-## Testing
-
-Run unit and integration tests:
-```bash
-uv run pytest -q
-```
-
-## Important Deployment Notes
-- **Uvicorn Invariant:** `usaspending_mcp.http_app` exports the FastAPI `app` object.
-- **Cloud Run CMD:** `uvicorn usaspending_mcp.http_app:app --host 0.0.0.0 --port ${PORT:-8080}`
-- **Budgets:** The server enforces cost controls (max 5 requests per question).
+- **[docs/QUICKSTART.md](docs/QUICKSTART.md)**: 5-minute setup guide.
+- **[docs/apis.md](docs/apis.md)**: API endpoint mapping and reference.
+- **[docs/prd.md](docs/prd.md)**: Product Requirement Document.
+- **[docs/runbook.md](docs/runbook.md)**: Operations and monitoring guide.
+- **[GEMINI.md](GEMINI.md)**: Project overview and development conventions.
