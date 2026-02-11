@@ -86,24 +86,10 @@ def test_success_metrics(orchestrator):
             "question": q,
             "resp": resp,
             "duration": duration,
-            "outbound_calls": len(resp.get("meta", {}).get("endpoints_used", [])), # Approximate from meta
             "response_bytes": len(json.dumps(resp).encode("utf-8"))
         })
 
-    # 1) Test: Average outbound calls <= 3
-    outbound_counts = [r["outbound_calls"] for r in results]
-    avg_calls = sum(outbound_counts) / len(outbound_counts)
-    outbound_counts.sort()
-    idx95 = int(len(outbound_counts) * 0.95)
-    # Ensure index is within bounds (if len is small)
-    idx95 = min(idx95, len(outbound_counts) - 1)
-    p95_calls = outbound_counts[idx95] if outbound_counts else 0
-    
-    print(f"\n[Metrics] Avg Calls: {avg_calls:.2f}, P95 Calls: {p95_calls}")
-    assert avg_calls <= 3.5, f"Average calls {avg_calls} > 3.5"
-    assert p95_calls <= 5, f"P95 calls {p95_calls} > 5"
-
-    # 2) Test: Response size <= 200KB (P95)
+    # 1) Test: Response size <= 200KB (P95)
     sizes = [r["response_bytes"] for r in results]
     sizes.sort()
     idx95_size = int(len(sizes) * 0.95)

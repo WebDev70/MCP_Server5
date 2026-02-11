@@ -2,13 +2,14 @@ import time
 from typing import Any, Dict, List, Optional
 
 from usaspending_mcp.cache import Cache
-from usaspending_mcp.response import fail, ok
+from usaspending_mcp.response import fail, ok, pick_fields
 from usaspending_mcp.usaspending_client import APIError, USAspendingClient
 
 # Defaults
 DEFAULT_INCLUDES = ["toptier_agencies", "award_types"]
 CATALOG_CACHE_KEY = "bootstrap_catalog_v1"
 CATALOG_TTL_SECONDS = 86400  # 24 hours
+AGENCY_OUTPUT_FIELDS = ["agency_name", "toptier_code", "abbreviation"]
 
 class BootstrapCatalogTool:
     def __init__(self, client: USAspendingClient, cache: Cache):
@@ -28,10 +29,14 @@ class BootstrapCatalogTool:
         if not force_refresh:
             cached_data, hit = self.cache.get(CATALOG_CACHE_KEY)
             if hit:
-                # Filter cached catalog to requested keys
+                # Filter cached catalog to requested keys, slim for output
                 filtered_catalog = {k: v for k, v in cached_data.items() if k in include}
+                if "toptier_agencies" in filtered_catalog:
+                    filtered_catalog["toptier_agencies"] = pick_fields(
+                        filtered_catalog["toptier_agencies"], AGENCY_OUTPUT_FIELDS
+                    )
                 return ok(
-                    {"catalog": filtered_catalog}, 
+                    {"catalog": filtered_catalog},
                     request_id=request_id,
                     endpoints_used=["(cached)"],
                     cache_hit=True
@@ -63,11 +68,18 @@ class BootstrapCatalogTool:
                  catalog["submission_periods"] = resp.get("available_periods", [])
                  endpoints_used.append(endpoint)
 
-            # Store in cache (full catalog)
+            # Store full catalog in cache (resolve_entities needs full agency objects)
             self.cache.set(CATALOG_CACHE_KEY, catalog, ttl_seconds=CATALOG_TTL_SECONDS)
-            
+
+            # Slim output for LLM
+            output = dict(catalog)
+            if "toptier_agencies" in output:
+                output["toptier_agencies"] = pick_fields(
+                    output["toptier_agencies"], AGENCY_OUTPUT_FIELDS
+                )
+
             return ok(
-                {"catalog": catalog},
+                {"catalog": output},
                 request_id=request_id,
                 endpoints_used=endpoints_used,
                 cache_hit=False

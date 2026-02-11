@@ -26,13 +26,12 @@ class AwardSearchTool:
 
     def _get_default_fields(self) -> List[str]:
         return [
-            "Award ID", 
-            "Recipient Name", 
-            "Awarding Agency", 
-            "Award Amount", 
-            "Action Date", 
-            "Description", 
-            "Award Type"
+            "Award ID",
+            "Recipient Name",
+            "Awarding Agency",
+            "Award Amount",
+            "Action Date",
+            "Award Type",
         ]
 
     def execute(
@@ -118,9 +117,10 @@ class AwardSearchTool:
                 resp = self.client.request("POST", endpoint, json_data=payload, request_id=request_id, tool_name="award_search")
                 result_data["results"] = resp.get("results", [])
                 
-                # Copy paging info if available
-                if "page_metadata" in resp:
-                    result_data["page_metadata"] = resp["page_metadata"]
+                # Copy only essential paging info
+                page_meta = resp.get("page_metadata", {})
+                if "total" in page_meta:
+                    result_data["total"] = page_meta["total"]
                     
                 endpoints_used.append(endpoint)
 

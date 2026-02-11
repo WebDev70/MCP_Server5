@@ -8,8 +8,18 @@ from usaspending_mcp.award_types import (
     SCOPE_ASSISTANCE_ONLY,
     SCOPE_CONTRACTS_ONLY,
 )
-from usaspending_mcp.response import fail, ok, out_of_scope
+from usaspending_mcp.response import fail, ok, out_of_scope, pick_fields
 from usaspending_mcp.usaspending_client import APIError, USAspendingClient
+
+# Fields kept from the /awards/{id}/ response to avoid sending the full object.
+SUMMARY_FIELDS = [
+    "id", "fain", "uri", "piid",
+    "type", "type_description", "category",
+    "total_obligation", "base_and_all_options_value",
+    "date_signed", "period_of_performance_start_date", "period_of_performance_current_end_date",
+    "recipient", "awarding_agency", "funding_agency",
+    "description",
+]
 
 
 class AwardExplainTool:
@@ -47,8 +57,8 @@ class AwardExplainTool:
         self, 
         award_id: str,
         include: Optional[List[str]] = None, 
-        transactions_limit: int = 25,
-        subawards_limit: int = 25,
+        transactions_limit: int = 10,
+        subawards_limit: int = 10,
         scope_mode: str = SCOPE_ALL_AWARDS,
         debug: bool = False,
         request_id: Optional[str] = None
@@ -78,7 +88,7 @@ class AwardExplainTool:
                 )
                 
             if "summary" in include:
-                result_bundle["summary"] = resp_summary
+                result_bundle["summary"] = pick_fields(resp_summary, SUMMARY_FIELDS)
                 
             # 2. Transactions
             if "transactions" in include:

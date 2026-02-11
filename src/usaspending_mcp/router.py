@@ -19,6 +19,17 @@ from usaspending_mcp.tools.spending_rollups import SpendingRollupsTool
 from usaspending_mcp.usaspending_client import USAspendingClient
 
 
+# Thin field list for the orchestrator path — omits "Description" to save tokens.
+THIN_FIELDS = [
+    "Award ID",
+    "Recipient Name",
+    "Awarding Agency",
+    "Award Amount",
+    "Action Date",
+    "Award Type",
+]
+
+
 class Router:
     def __init__(self, client: USAspendingClient, cache: Cache):
         self.client = client
@@ -232,9 +243,10 @@ class Router:
                 )
 
             elif tool_name == "award_search":
-                filters = {"keywords": [question]} 
+                filters = {"keywords": [question]}
                 result = self.tools["award_search"].execute(
                     filters=filters,
+                    fields=THIN_FIELDS,
                     limit=self.rules["defaults"]["award_search"]["limit_default"],
                     scope_mode=scope_mode,
                     debug=debug,
@@ -264,28 +276,33 @@ class Router:
                 pass
 
             
-            # Add metadata
-            meta = result.get("meta", {})
-            meta["route_name"] = tool_name
-            meta["budgets_used"] = {"wall_ms": (time.time() - start_time) * 1000}
-            
+            # Unwrap the tool response to avoid double-wrapping.
+            # Tool responses from ok() have: {"tool_version", "meta", ...data_keys}
+            # We extract data keys and merge into a single flat envelope.
+            tool_meta = result.pop("meta", {})
+            result.pop("tool_version", None)
+
+            # Merge router-level metadata into the tool's meta
+            tool_meta["route_name"] = tool_name
+            tool_meta["budgets_used"] = {"wall_ms": (time.time() - start_time) * 1000}
+
             # Apply Output Policy (Summary First & Trimming)
             max_bytes = self.rules["budgets"]["max_response_bytes"]
             max_items = self.rules["budgets"]["max_items_per_list"]
-            
+
             trimmed_result, truncation_info = trim_payload(result, max_bytes, max_items)
             if truncation_info:
-                meta["truncated"] = True
-                meta["truncation"] = truncation_info
-            
+                tool_meta["truncated"] = True
+                tool_meta["truncation"] = truncation_info
+
             return {
                 "tool_version": "1.0",
-                "meta": meta,
+                "meta": tool_meta,
                 "plan": {
                     "scope_mode": scope_mode,
                     "actions": [tool_name]
                 },
-                "result": trimmed_result
+                **trimmed_result
             }
 
         except Exception as e:

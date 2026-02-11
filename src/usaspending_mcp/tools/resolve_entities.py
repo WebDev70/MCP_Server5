@@ -2,11 +2,12 @@ import time
 from typing import Any, Dict, List, Optional
 
 from usaspending_mcp.cache import Cache
-from usaspending_mcp.response import fail, ok
+from usaspending_mcp.response import fail, ok, pick_fields
 from usaspending_mcp.usaspending_client import APIError, USAspendingClient
 
 CACHE_TTL = 3600  # 1 hour
 DEFAULT_TYPES = ["agency", "recipient"]
+AGENCY_OUTPUT_FIELDS = ["agency_name", "toptier_code", "abbreviation"]
 
 class ResolveEntitiesTool:
     def __init__(self, client: USAspendingClient, cache: Cache):
@@ -17,7 +18,7 @@ class ResolveEntitiesTool:
         self, 
         q: str, 
         types: Optional[List[str]] = None, 
-        limit: int = 10,
+        limit: int = 5,
         request_id: Optional[str] = None
     ) -> Dict[str, Any]:
         request_id = request_id or f"req-{int(time.time())}"
@@ -81,7 +82,7 @@ class ResolveEntitiesTool:
                     x.get("agency_name") # Alphabetical
                 ))
                 
-                matches["agency"] = agency_matches[:limit]
+                matches["agency"] = pick_fields(agency_matches[:limit], AGENCY_OUTPUT_FIELDS)
 
             # 2. Recipients (Autocomplete API)
             if "recipient" in types:

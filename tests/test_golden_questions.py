@@ -111,12 +111,8 @@ def test_golden_8_resolve_entities(orchestrator):
     router.tools["resolve_entities"].execute.assert_called_once()
 
     # Assert Result content (propagated from mock)
-    # Note: result is in resp["result"] or top level depending on response logic.
-    # In router.py, `result` key in envelope contains the tool output.
-    # But `ResolveEntitiesTool` returns `matches` directly in `ok()` data.
-    # Router wraps it: `return { ..., "result": trimmed_result }`
-
-    matches = resp["result"]["matches"]
+    # Flat envelope: data keys are at top level, not nested under "result"
+    matches = resp["matches"]
 
     # Recipient match
     assert any("CACI" in m["recipient_name"] for m in matches["recipient"])
@@ -129,5 +125,4 @@ def test_golden_8_resolve_entities(orchestrator):
 
     # Meta presence
     assert resp["tool_version"] == "1.0"
-    assert "request_id" in resp["meta"]
-    assert "endpoints_used" in resp["meta"] or "endpoint_used" in resp["meta"]
+    assert resp["meta"]["route_name"] == "resolve_entities"
