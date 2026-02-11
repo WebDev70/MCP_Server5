@@ -1,4 +1,4 @@
-from usaspending_mcp.response import REMEDIATION_HINTS, fail, ok, out_of_scope, trim_payload
+from usaspending_mcp.response import REMEDIATION_HINTS, fail, ok, out_of_scope, pick_fields, trim_payload
 
 
 def test_ok_response_structure():
@@ -14,10 +14,12 @@ def test_ok_response_structure():
     
     assert resp["tool_version"] == "1.0"
     assert resp["results"] == [1, 2, 3]
-    assert resp["meta"]["request_id"] == request_id
-    assert resp["meta"]["endpoint_used"] == "/test/endpoint"
     assert resp["meta"]["accuracy_tier"] == "A"
     assert resp["meta"]["scope_mode"] == "all_awards"  # default
+    # Stripped fields should not appear
+    assert "request_id" not in resp["meta"]
+    assert "endpoints_used" not in resp["meta"]
+    assert "warnings" not in resp["meta"]  # empty warnings omitted
 
 def test_fail_response_structure_manual_hint():
     request_id = "req-456"
@@ -92,27 +94,100 @@ def test_out_of_scope_helper():
     assert resp["error"]["remediation_hint"] == REMEDIATION_HINTS["validation"]["invalid_scope_mode"]
 
 def test_trim_payload_items():
-    # Test capping list items
+    # Test capping list items — results key
     data = {"results": [i for i in range(100)]}
     trimmed, meta = trim_payload(data, max_items_per_list=50)
-    
+
     assert len(trimmed["results"]) == 50
     assert meta is not None
     assert "results_limit_exceeded_capped_at_50" in meta["reason"]
     assert meta["max_items_per_list"] == 50
-    assert meta["returned_items"] == 50
+    assert meta["returned_items"]["results"] == 50
+
+
+def test_trim_payload_items_transactions():
+    # Test capping list items — transactions key
+    data = {"transactions": [{"id": i} for i in range(100)]}
+    trimmed, meta = trim_payload(data, max_items_per_list=50)
+
+    assert len(trimmed["transactions"]) == 50
+    assert meta is not None
+    assert "transactions_limit_exceeded_capped_at_50" in meta["reason"]
+    assert meta["returned_items"]["transactions"] == 50
+
+
+def test_trim_payload_items_groups():
+    # Test capping list items — groups key
+    data = {"groups": [{"agency": f"agency-{i}"} for i in range(100)]}
+    trimmed, meta = trim_payload(data, max_items_per_list=50)
+
+    assert len(trimmed["groups"]) == 50
+    assert meta is not None
+    assert "groups_limit_exceeded_capped_at_50" in meta["reason"]
+    assert meta["returned_items"]["groups"] == 50
+
+
+def test_trim_payload_multiple_keys():
+    """When multiple trimmable keys exceed limits, all are capped."""
+    data = {
+        "results": [i for i in range(100)],
+        "transactions": [{"id": i} for i in range(80)],
+        "subawards": [{"id": i} for i in range(60)],
+    }
+    trimmed, meta = trim_payload(data, max_items_per_list=50)
+
+    assert len(trimmed["results"]) == 50
+    assert len(trimmed["transactions"]) == 50
+    assert len(trimmed["subawards"]) == 50
+    assert meta is not None
+    assert "results_limit_exceeded_capped_at_50" in meta["reason"]
+    assert "transactions_limit_exceeded_capped_at_50" in meta["reason"]
+    # subawards was 60 > 50, so also capped
+    assert "subawards_limit_exceeded_capped_at_50" in meta["reason"]
+
 
 def test_trim_payload_bytes():
     # Test byte size trimming
-    # Create a list of large strings
-    # We want to exceed max_bytes (default 200k)
-    # Let's use small max_bytes for test
     data = {"results": ["a" * 100 for _ in range(20)]}
-    # Total ~2000 bytes
-    
+
     trimmed, meta = trim_payload(data, max_bytes=1000)
-    
+
     assert meta is not None
     assert "max_bytes_exceeded" in meta["reason"]
     assert len(trimmed["results"]) < 20
-    # Should have cut in half at least once
+
+
+def test_trim_payload_bytes_largest_key_first():
+    """Byte trimming halves the largest trimmable list first."""
+    data = {
+        "results": [{"v": "x" * 50} for _ in range(10)],
+        "transactions": [{"v": "y" * 50} for _ in range(40)],
+    }
+    trimmed, meta = trim_payload(data, max_bytes=2000)
+
+    assert meta is not None
+    assert "max_bytes_exceeded" in meta["reason"]
+    # transactions was larger and should have been halved first
+    assert len(trimmed["transactions"]) < 40
+
+
+def test_pick_fields_dict():
+    obj = {"name": "DoD", "code": "097", "budget": 999, "extra": True}
+    assert pick_fields(obj, ["name", "code"]) == {"name": "DoD", "code": "097"}
+
+
+def test_pick_fields_list():
+    items = [
+        {"name": "DoD", "code": "097", "budget": 999},
+        {"name": "NASA", "code": "080", "budget": 123},
+    ]
+    result = pick_fields(items, ["name", "code"])
+    assert result == [
+        {"name": "DoD", "code": "097"},
+        {"name": "NASA", "code": "080"},
+    ]
+
+
+def test_pick_fields_passthrough():
+    assert pick_fields("plain string", ["a"]) == "plain string"
+    assert pick_fields(42, ["a"]) == 42

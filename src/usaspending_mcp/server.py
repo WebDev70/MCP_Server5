@@ -53,10 +53,7 @@ def data_freshness(
     agency_code: str = None, 
     debug: bool = False
 ) -> dict:
-    """
-    Check data freshness/currency.
-    Returns latest submission periods, agency status, or DB update time.
-    """
+    """Check data currency: submission periods, agency status, or DB update time."""
     request_id = str(uuid.uuid4())
     with log_context(request_id=request_id, tool_name="data_freshness"):
         logger.info(f"Executing data_freshness check_type={check_type}")
@@ -64,10 +61,7 @@ def data_freshness(
 
 @mcp.tool()
 def bootstrap_catalog(include: list[str] = None, force_refresh: bool = False) -> dict:
-    """
-    Loads/refreshes reference catalogs (agencies, award types).
-    Recommended to run this once at session start.
-    """
+    """Load reference catalogs (agencies, award types). Run once at session start."""
     request_id = str(uuid.uuid4())
     with log_context(request_id=request_id, tool_name="bootstrap_catalog"):
         logger.info(f"Executing bootstrap_catalog force_refresh={force_refresh}")
@@ -75,10 +69,7 @@ def bootstrap_catalog(include: list[str] = None, force_refresh: bool = False) ->
 
 @mcp.tool()
 def resolve_entities(q: str, types: list[str] = None, limit: int = 10) -> dict:
-    """
-    Resolves natural language queries to canonical entities (Agencies, Recipients).
-    Use this before searching if entity names are ambiguous.
-    """
+    """Resolve names to canonical IDs (agencies, recipients, PSC, NAICS). Use before search if ambiguous."""
     request_id = str(uuid.uuid4())
     with log_context(request_id=request_id, tool_name="resolve_entities"):
         logger.info(f"Executing resolve_entities q='{q}'")
@@ -96,10 +87,7 @@ def award_search(
     mode: str = "list", 
     scope_mode: str = "all_awards"
 ) -> dict:
-    """
-    Searches for awards (Contracts, Grants, etc.) matching filters.
-    Supports list and count modes.
-    """
+    """Search awards by filters. Returns list or count."""
     request_id = str(uuid.uuid4())
     with log_context(request_id=request_id, tool_name="award_search"):
         logger.info(f"Executing award_search mode={mode} scope_mode={scope_mode}")
@@ -124,9 +112,7 @@ def award_explain(
     subawards_limit: int = 25, 
     scope_mode: str = "all_awards"
 ) -> dict:
-    """
-    Explains a specific award (Summary, Transactions, Subawards).
-    """
+    """Get award details: summary, transactions, subawards."""
     request_id = str(uuid.uuid4())
     with log_context(request_id=request_id, tool_name="award_explain"):
         logger.info(f"Executing award_explain award_id={award_id}")
@@ -148,9 +134,7 @@ def spending_rollups(
     metric: str = "obligations", 
     scope_mode: str = "all_awards"
 ) -> dict:
-    """
-    Returns total spending or Top N breakdowns (e.g., by agency, recipient) without listing all awards.
-    """
+    """Get spending totals/Top-N breakdowns by agency/recipient. No award lists."""
     request_id = str(uuid.uuid4())
     with log_context(request_id=request_id, tool_name="spending_rollups"):
         logger.info(f"Executing spending_rollups group_by={group_by}")
@@ -171,9 +155,7 @@ def recipient_profile(
     include: list[str] = None, 
     scope_mode: str = "all_awards"
 ) -> dict:
-    """
-    Gets a profile for a recipient (Vendor/Grantee), including totals and top spending.
-    """
+    """Recipient overview: totals and top awards."""
     request_id = str(uuid.uuid4())
     with log_context(request_id=request_id, tool_name="recipient_profile"):
         logger.info(f"Executing recipient_profile recipient='{recipient}'")
@@ -192,9 +174,7 @@ def agency_portfolio(
     views: list[str] = None, 
     scope_mode: str = "all_awards"
 ) -> dict:
-    """
-    Gets agency overview and top awards/recipients.
-    """
+    """Agency overview: budget, top awards/recipients."""
     request_id = str(uuid.uuid4())
     with log_context(request_id=request_id, tool_name="agency_portfolio"):
         logger.info(f"Executing agency_portfolio toptier_code={toptier_code}")
@@ -213,9 +193,7 @@ def idv_vehicle_bundle(
     time_period: list[dict] = None, 
     scope_mode: str = "all_awards"
 ) -> dict:
-    """
-    Gets details for an IDV (Indefinite Delivery Vehicle) including Task Orders and Funding.
-    """
+    """IDV details: task orders, funding, activity."""
     request_id = str(uuid.uuid4())
     with log_context(request_id=request_id, tool_name="idv_vehicle_bundle"):
         logger.info(f"Executing idv_vehicle_bundle idv_award_id={idv_award_id}")
@@ -229,11 +207,7 @@ def idv_vehicle_bundle(
 
 @mcp.tool()
 def answer_award_spending_question(question: str) -> dict:
-    """
-    [ORCHESTRATOR] Intelligently answers a question about federal award spending.
-    It plans the best tool to use, checks budgets, and returns a concise answer bundle.
-    Use this for natural language questions.
-    """
+    """Answer a natural-language federal spending question."""
     request_id = str(uuid.uuid4())
     with log_context(request_id=request_id, tool_name="answer_award_spending_question"):
         logger.info(f"Executing answer_award_spending_question question='{question}'")

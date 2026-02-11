@@ -2,6 +2,17 @@ from typing import Any, Dict, List, Optional, Tuple
 
 TOOL_VERSION = "1.0"
 
+TRIMMABLE_KEYS = ["results", "transactions", "subawards", "orders", "activity", "groups"]
+
+
+def pick_fields(data, keys: list[str]):
+    """Filter a dict (or list of dicts) to only the specified keys."""
+    if isinstance(data, dict):
+        return {k: v for k, v in data.items() if k in keys}
+    if isinstance(data, list):
+        return [pick_fields(item, keys) for item in data]
+    return data
+
 REMEDIATION_HINTS = {
     "validation": {
         "invalid_time_period": "Use format: {'start_date': 'YYYY-MM-DD', 'end_date': 'YYYY-MM-DD'} or {'fy': '2024'}",
@@ -41,15 +52,11 @@ def _build_meta(
     **kwargs
 ) -> Dict[str, Any]:
     meta = {
-        "request_id": request_id,
         "scope_mode": scope_mode,
-        "warnings": warnings or [],
     }
-    
-    if endpoint_used:
-        meta["endpoint_used"] = endpoint_used
-    if endpoints_used:
-        meta["endpoints_used"] = endpoints_used
+
+    if warnings:
+        meta["warnings"] = warnings
     if time_period:
         meta["time_period"] = time_period
     if accuracy_tier:
@@ -63,58 +70,73 @@ def _build_meta(
     return meta
 
 def trim_payload(
-    data: Any, 
-    max_bytes: int = 200_000, 
+    data: Any,
+    max_bytes: int = 200_000,
     max_items_per_list: int = 200
 ) -> Tuple[Any, Optional[Dict[str, Any]]]:
     """
-    Recursively trims payload to stay within size and item count limits.
+    Trims payload to stay within size and item count limits.
+    Checks all TRIMMABLE_KEYS (results, transactions, subawards, etc.).
     Returns (trimmed_data, truncation_meta)
     If no truncation occurred, truncation_meta is None.
     """
     import json
-    
+
     truncated = False
     reason = []
-    
-    # 1. Simple item count check on top-level results list
-    if isinstance(data, dict) and "results" in data and isinstance(data["results"], list):
-        if len(data["results"]) > max_items_per_list:
-            data["results"] = data["results"][:max_items_per_list]
-            truncated = True
-            reason.append(f"results_limit_exceeded_capped_at_{max_items_per_list}")
+    trimmed_keys: Dict[str, int] = {}
 
-    # 2. Byte size check (rough estimation)
-    # If we are over max_bytes, we aggressively trim the list further
+    if not isinstance(data, dict):
+        return data, None
+
+    # 1. Item count check on all trimmable keys
+    for key in TRIMMABLE_KEYS:
+        if key in data and isinstance(data[key], list):
+            if len(data[key]) > max_items_per_list:
+                data[key] = data[key][:max_items_per_list]
+                truncated = True
+                reason.append(f"{key}_limit_exceeded_capped_at_{max_items_per_list}")
+
+    # 2. Byte size check — halve the largest trimmable list until we fit
     encoded = json.dumps(data, default=str)
     current_bytes = len(encoded.encode("utf-8"))
-    
+
     if current_bytes > max_bytes:
         truncated = True
         reason.append("max_bytes_exceeded")
-        
-        # Strategy: if it's a list of results, cut it in half repeatedly until it fits
-        # or until we reach a very small number
-        if isinstance(data, dict) and "results" in data and isinstance(data["results"], list):
-            results = data["results"]
-            while current_bytes > max_bytes and len(results) > 1:
-                # Reduce by half
-                new_len = len(results) // 2
-                results = results[:new_len]
-                data["results"] = results
-                
-                encoded = json.dumps(data, default=str)
-                current_bytes = len(encoded.encode("utf-8"))
-    
+
+        while current_bytes > max_bytes:
+            # Find the largest trimmable list
+            largest_key = None
+            largest_len = 1  # don't halve lists of length 1
+            for key in TRIMMABLE_KEYS:
+                if key in data and isinstance(data[key], list) and len(data[key]) > largest_len:
+                    largest_key = key
+                    largest_len = len(data[key])
+
+            if largest_key is None:
+                break  # nothing left to trim
+
+            new_len = largest_len // 2
+            data[largest_key] = data[largest_key][:new_len]
+
+            encoded = json.dumps(data, default=str)
+            current_bytes = len(encoded.encode("utf-8"))
+
+    # Build per-key returned counts
+    for key in TRIMMABLE_KEYS:
+        if key in data and isinstance(data[key], list):
+            trimmed_keys[key] = len(data[key])
+
     truncation_info = None
     if truncated:
         truncation_info = {
             "reason": ", ".join(reason),
             "max_bytes": max_bytes,
             "max_items_per_list": max_items_per_list,
-            "returned_items": len(data.get("results", [])) if isinstance(data, dict) and "results" in data else "N/A"
+            "returned_items": trimmed_keys or "N/A",
         }
-        
+
     return data, truncation_info
 
 def ok(

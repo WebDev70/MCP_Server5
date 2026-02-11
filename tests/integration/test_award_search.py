@@ -64,7 +64,6 @@ def test_award_search_count_and_list(tool):
     assert "results" in result
     assert "count" in result
     assert result["count"] == 100
-    assert len(result["meta"]["endpoints_used"]) == 2
 
 @respx.mock
 def test_award_search_truncation(tool):

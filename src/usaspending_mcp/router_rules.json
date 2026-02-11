@@ -22,12 +22,6 @@
       "funding agency": "funding_agency",
       "received from": "funding_agency"
     },
-    "award_category_normalization": {
-      "output_field": "award_category",
-      "values": ["contract", "idv", "grant", "loan", "direct_payment", "other_assistance"]
-    },
-    "scope_mode_control": "both",
-    "scope_mode_param_name": "scope_mode",
     "scope_mode_inference_default": true
   },
   "budgets": {
@@ -47,12 +41,12 @@
   "defaults": {
     "scope_mode_default": "all_awards",
     "award_search": {
-      "limit_default": 50,
+      "limit_default": 20,
       "limit_max": 200,
       "fields_profile": "thin"
     },
     "spending_rollups": {
-      "top_n_default": 10,
+      "top_n_default": 5,
       "top_n_max": 25
     },
     "output_policy": {

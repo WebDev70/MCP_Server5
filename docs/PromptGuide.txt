@@ -4,7 +4,7 @@ Below is a Prompt Guide designed for your all-awards scope from day 1: contracts
 Prompt Pack — USAspending MCP (All Awards)
 
 Prompt 0 — Read PRD and produce an execution plan (no code)
-Read ./prd.md and produce:
+Read ./docs/prd.md and produce:
 1) A 1-page architecture summary
 2) A repo file tree (src-layout) you will implement
 3) Sprint 1 (P0) step-by-step plan with acceptance criteria per tool
@@ -1355,11 +1355,7 @@ After completing all prompts, the repository should contain:
 ```
 .
 ├── CLAUDE.md                    # AI assistant guidance
-├── QUICKSTART.md                # 5-minute setup guide
 ├── README.md                    # Full documentation
-├── prd.md                       # Product requirements
-├── PromptGuide.txt              # This file
-├── apis.md                      # API endpoint reference
 ├── pyproject.toml
 ├── Dockerfile
 ├── docker-compose.yml
@@ -1423,7 +1419,11 @@ After completing all prompts, the repository should contain:
 │   ├── smoke_test_cloud_run.sh
 │   └── get_service_url.sh
 ├── docs/
-│   └── runbook.md
+│   ├── apis.md                      # API endpoint reference
+│   ├── prd.md                       # Product requirements
+│   ├── PromptGuide.txt              # This file
+│   ├── QUICKSTART.md                # 5-minute setup guide
+│   └── runbook.md                   # Operations guide
 └── examples/
     ├── bootstrap_catalog_request.json
     ├── bootstrap_catalog_response.json
