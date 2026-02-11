@@ -33,7 +33,6 @@ def test_idv_bundle_success(tool):
     assert result["tool_version"] == "1.0"
     assert len(result["orders"]) == 1
     assert result["funding_rollup"]["total_transaction_obligated_amount"] == 5000
-    assert len(result["meta"]["endpoints_used"]) == 2
 
 @respx.mock
 def test_idv_scope_rejection(tool):

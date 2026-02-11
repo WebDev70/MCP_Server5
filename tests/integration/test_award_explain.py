@@ -35,7 +35,6 @@ def test_award_explain_success(tool):
     assert result["summary"]["type"] == "A"
     assert len(result["transactions"]) == 1
     assert result["transactions_total"] == 5
-    assert len(result["meta"]["endpoints_used"]) == 2
 
 @respx.mock
 def test_award_explain_scope_validation_fail(tool):

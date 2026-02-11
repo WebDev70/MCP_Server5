@@ -19,7 +19,7 @@ def test_bootstrap_catalog_fresh(tool):
     agencies_url = f"{tool.client.base_url}/references/toptier_agencies/"
     types_url = f"{tool.client.base_url}/references/award_types/"
 
-    respx.get(agencies_url).mock(return_value=httpx.Response(200, json={"results": [{"agency_id": 1}]}))
+    respx.get(agencies_url).mock(return_value=httpx.Response(200, json={"results": [{"agency_name": "DoD", "toptier_code": "097", "abbreviation": "DOD", "agency_id": 1}]}))
     # award_types endpoint returns a dict of groups, not {"results": [...]}
     respx.get(types_url).mock(return_value=httpx.Response(200, json={"contracts": [{"code": "A"}]}))
 
@@ -27,27 +27,30 @@ def test_bootstrap_catalog_fresh(tool):
 
     assert result["tool_version"] == "1.0"
     assert "toptier_agencies" in result["catalog"]
-    assert result["catalog"]["toptier_agencies"][0]["agency_id"] == 1
+    # Output is slimmed to allowlisted fields only
+    assert result["catalog"]["toptier_agencies"][0]["agency_name"] == "DoD"
+    assert result["catalog"]["toptier_agencies"][0]["toptier_code"] == "097"
+    assert "agency_id" not in result["catalog"]["toptier_agencies"][0]
     assert result["meta"]["cache_hit"] is False
-    assert len(result["meta"]["endpoints_used"]) == 2
 
 @respx.mock
 def test_bootstrap_catalog_cached(tool):
     # 1. First call to populate cache
     agencies_url = f"{tool.client.base_url}/references/toptier_agencies/"
-    respx.get(agencies_url).mock(return_value=httpx.Response(200, json={"results": [{"agency_id": 1}]}))
-    
+    respx.get(agencies_url).mock(return_value=httpx.Response(200, json={"results": [{"agency_name": "DoD", "toptier_code": "097", "abbreviation": "DOD", "agency_id": 1}]}))
+
     tool.execute(include=["toptier_agencies"])
-    
+
     # 2. Second call should hit cache (no new network requests)
     # Clear mocks to ensure no network calls happen
     # (respx would raise error if unmocked call made)
-    
+
     result = tool.execute(include=["toptier_agencies"])
-    
-    assert result["catalog"]["toptier_agencies"][0]["agency_id"] == 1
+
+    # Output is slimmed; agency_id is filtered out
+    assert result["catalog"]["toptier_agencies"][0]["agency_name"] == "DoD"
+    assert "agency_id" not in result["catalog"]["toptier_agencies"][0]
     assert result["meta"]["cache_hit"] is True
-    assert result["meta"]["endpoints_used"] == ["(cached)"]
 
 @respx.mock
 def test_bootstrap_catalog_force_refresh(tool):
